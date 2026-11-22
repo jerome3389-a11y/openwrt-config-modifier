@@ -1,0 +1,2105 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <link rel="icon" href="data:," />
+    <title>OpenWrt 配置修改器</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+    <style>
+      :root{
+        --bg:#171725; --bg2:#1c1c2b; --card:#232334; --card2:#2a2a40; --card3:#1f1f2e;
+        --line:#35354e; --line2:#43435f;
+        --ink:#eef0f7; --ink2:#c6cbdd; --muted:#929cb4;
+        --primary:#5e72e4; --primary2:#825ee4; --info:#11cdef; --ok:#2dce89;
+        --warn:#fb9f43; --crit:#f5365c; --amber:#f5a623;
+        --grad:linear-gradient(135deg,#5e72e4,#825ee4);
+        --grad-info:linear-gradient(135deg,#11cdef,#1171ef);
+        --grad-ok:linear-gradient(135deg,#2dce89,#2dcca8);
+        --grad-warn:linear-gradient(135deg,#fb6340,#fbb140);
+        --grad-crit:linear-gradient(135deg,#f5365c,#f56036);
+        --radius:14px;
+        --font:'Open Sans','Noto Sans SC',-apple-system,'Segoe UI',sans-serif;
+        --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+      }
+      *{box-sizing:border-box}
+      html,body{margin:0;padding:0}
+      body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.55;
+        background-image:radial-gradient(900px 480px at 85% -120px,rgba(94,114,228,.16),transparent 60%),radial-gradient(700px 420px at -10% 0,rgba(17,205,239,.07),transparent 55%);
+        background-attachment:fixed;min-height:100vh}
+      button{font-family:var(--font);cursor:pointer}
+      input,select,textarea{font-family:var(--font)}
+      .zh{color:var(--muted);font-weight:400}
+      .mono{font-family:var(--mono)}
+      /* ---------- top toolbar ---------- */
+      .topbar{position:sticky;top:0;z-index:40;background:rgba(23,23,37,.88);backdrop-filter:blur(10px);
+        border-bottom:1px solid var(--line);padding:10px 16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+      .topbar .spacer{flex:1}
+      .btn{border:1px solid var(--line2);background:var(--card2);color:var(--ink);border-radius:9px;
+        padding:8px 14px;font-size:13.5px;font-weight:600;display:inline-flex;align-items:center;gap:7px;transition:.15s}
+      .btn:hover{border-color:var(--primary);color:#fff}
+      .btn.primary{background:var(--grad);border:none;color:#fff;box-shadow:0 4px 14px rgba(94,114,228,.35)}
+      .btn.primary:hover{filter:brightness(1.1)}
+      .btn.ghost{background:transparent}
+      .btn.small{padding:5px 10px;font-size:12.5px;border-radius:7px}
+      .btn.danger:hover{border-color:var(--crit);color:var(--crit)}
+      .btn:disabled{opacity:.45;cursor:not-allowed}
+      .srcname{font-family:var(--mono);font-size:12.5px;color:var(--muted);max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      main{max-width:1460px;margin:0 auto;padding:18px 16px 70px}
+      /* ---------- empty state ---------- */
+      .dropzone{border:2px dashed var(--line2);border-radius:20px;background:var(--card3);
+        padding:44px 26px;text-align:center;transition:.15s;margin-top:8px}
+      .dropzone.drag{border-color:var(--info);background:#1d2b3d}
+      .dropzone h1{font-size:25px;margin:0 0 6px;font-weight:800;letter-spacing:.2px}
+      .dropzone h1 .zh{font-size:19px}
+      .dropzone p{color:var(--ink2);max-width:640px;margin:8px auto}
+      .dz-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px}
+      .pastebox{width:100%;max-width:760px;margin:16px auto 0;display:none;text-align:left}
+      .pastebox textarea{width:100%;height:180px;background:var(--bg2);color:var(--ink);border:1px solid var(--line2);
+        border-radius:10px;padding:12px;font-family:var(--mono);font-size:12.5px;resize:vertical}
+      .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:22px}
+      .mini-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;text-align:left}
+      .mini-card h3{margin:0 0 6px;font-size:15px}
+      .mini-card p,.mini-card li{color:var(--ink2);font-size:13.5px}
+      .mini-card ul{margin:6px 0 0;padding-left:18px}
+      .mini-card code,.code-inline{font-family:var(--mono);font-size:12px;background:var(--bg2);border:1px solid var(--line);
+        padding:1px 6px;border-radius:6px;color:var(--info);white-space:nowrap}
+      .mini-card pre{background:var(--bg2);border:1px solid var(--line);border-radius:9px;padding:10px 12px;overflow-x:auto;margin:8px 0 0}
+      .mini-card pre code{background:none;border:none;padding:0;color:var(--ink2);white-space:pre}
+      /* ---------- stat cards ---------- */
+      .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px}
+      .stat{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:13px 15px;display:flex;gap:12px;align-items:center}
+      .stat .ic{width:40px;height:40px;border-radius:11px;flex:none;display:flex;align-items:center;justify-content:center;font-size:19px;color:#fff}
+      .stat .num{font-size:21px;font-weight:800;line-height:1.1}
+      .stat .lbl{font-size:12px;color:var(--muted)}
+      .ic.p{background:var(--grad)} .ic.i{background:var(--grad-info)} .ic.o{background:var(--grad-ok)}
+      .ic.w{background:var(--grad-warn)} .ic.c{background:var(--grad-crit)}
+      /* ---------- view tabs ---------- */
+      .viewtabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+      .vtab{border:1px solid var(--line2);background:var(--card);color:var(--ink2);border-radius:999px;padding:8px 18px;font-weight:700;font-size:14px}
+      .vtab.active{background:var(--grad);color:#fff;border-color:transparent}
+      .badge{display:inline-block;min-width:20px;text-align:center;background:var(--crit);color:#fff;border-radius:999px;
+        font-size:11.5px;font-weight:700;padding:1px 6px;margin-left:6px;vertical-align:2px}
+      .badge.blue{background:var(--primary)} .badge.grey{background:var(--line2);color:var(--ink)}
+      /* ---------- params layout ---------- */
+      .layout{display:grid;grid-template-columns:216px minmax(0,1fr) 330px;gap:16px;align-items:start}
+      .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius)}
+      .sidenav{padding:12px;position:sticky;top:64px}
+      .sidenav h4{margin:8px 6px 6px;font-size:11.5px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
+      .navitem{display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;background:none;border:none;
+        color:var(--ink2);padding:8px 10px;border-radius:9px;font-size:13.5px;font-weight:600}
+      .navitem:hover{background:var(--card2);color:#fff}
+      .navitem.active{background:var(--grad);color:#fff}
+      .navitem .cnt{font-size:11.5px;background:rgba(255,255,255,.14);border-radius:999px;padding:0 7px;font-family:var(--mono)}
+      .navitem:not(.active) .cnt{background:var(--bg2);color:var(--muted)}
+      .pkgchip{font-family:var(--mono);font-size:12px}
+      .filterbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
+      .search{flex:1;min-width:180px;background:var(--card);border:1px solid var(--line2);border-radius:10px;color:var(--ink);
+        padding:9px 13px;font-size:14px}
+      .search:focus{outline:2px solid var(--primary);outline-offset:0}
+      .fselect{background:var(--card);border:1px solid var(--line2);color:var(--ink);border-radius:10px;padding:9px 10px;font-size:13.5px}
+      /* section cards */
+      .seccard{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:14px;overflow:hidden}
+      .seccard.changed{border-color:var(--primary)}
+      .sechead{padding:13px 16px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;border-bottom:1px solid var(--line);background:var(--card3)}
+      .sechead .title{font-weight:800;font-size:15.5px}
+      .sechead .ref{font-family:var(--mono);font-size:12px;color:var(--info)}
+      .chip{display:inline-block;font-size:11px;font-weight:700;border-radius:999px;padding:2px 9px;background:var(--bg2);
+        border:1px solid var(--line2);color:var(--ink2)}
+      .chip.layer{color:var(--info);border-color:rgba(17,205,239,.4)}
+      .chip.iss{color:#ffb3c2;border-color:rgba(245,54,92,.5);background:rgba(245,54,92,.12)}
+      .chip.warniss{color:#ffd9ae;border-color:rgba(251,159,67,.5);background:rgba(251,159,67,.1)}
+      .prow{display:grid;grid-template-columns:minmax(150px,240px) minmax(0,1fr) auto;gap:12px;align-items:center;
+        padding:10px 16px;border-bottom:1px solid rgba(53,53,78,.55)}
+      .prow:last-child{border-bottom:none}
+      .prow:hover{background:rgba(255,255,255,.02)}
+      .prow.selected{background:rgba(94,114,228,.1);box-shadow:inset 3px 0 0 var(--primary)}
+      .prow.ischanged{background:rgba(94,114,228,.06)}
+      .pkey{min-width:0}
+      .pkey .k{font-family:var(--mono);font-size:13px;color:var(--ink);word-break:break-all}
+      .pkey .l{font-size:12.5px;color:var(--muted)}
+      .pval{min-width:0}
+      .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--primary);margin-right:6px;vertical-align:1px}
+      .flag{font-size:11px;font-weight:800;border-radius:5px;padding:1px 6px;margin-left:7px;vertical-align:2px}
+      .flag.crit{background:rgba(245,54,92,.18);color:#ff8fab}
+      .flag.warn{background:rgba(251,159,67,.16);color:#ffc98a}
+      .flag.del{background:rgba(245,54,92,.18);color:#ff8fab}
+      /* editors */
+      .vin{width:100%;background:var(--bg2);border:1px solid var(--line2);color:var(--ink);border-radius:8px;
+        padding:7px 10px;font-family:var(--mono);font-size:13px}
+      .vin:focus{outline:2px solid var(--primary)}
+      .vin.invalid{border-color:var(--crit);outline-color:var(--crit)}
+      .vsel{width:100%;background:var(--bg2);border:1px solid var(--line2);color:var(--ink);border-radius:8px;padding:7px 10px;font-size:13.5px}
+      .toggle{border:1px solid var(--line2);background:var(--bg2);border-radius:999px;padding:4px 6px 4px 12px;display:inline-flex;
+        align-items:center;gap:9px;color:var(--ink2);font-size:12.5px;font-weight:700}
+      .toggle .pill{width:34px;height:19px;border-radius:999px;background:var(--line2);position:relative;flex:none;transition:.15s}
+      .toggle .pill::after{content:'';position:absolute;top:2.5px;left:3px;width:14px;height:14px;border-radius:50%;background:#cfd4e4;transition:.15s}
+      .toggle.on{color:#fff}
+      .toggle.on .pill{background:var(--ok)}
+      .toggle.on .pill::after{left:17px;background:#fff}
+      .listedit{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+      .lchip{display:inline-flex;align-items:center;gap:6px;background:var(--bg2);border:1px solid var(--line2);border-radius:8px;
+        padding:4px 6px 4px 10px;font-family:var(--mono);font-size:12.5px}
+      .lchip button{background:none;border:none;color:var(--muted);font-size:15px;line-height:1;padding:2px 4px}
+      .lchip button:hover{color:var(--crit)}
+      .ladd{display:inline-flex;gap:5px}
+      .ladd input{width:130px;background:var(--bg2);border:1px dashed var(--line2);color:var(--ink);border-radius:8px;padding:5px 9px;font-family:var(--mono);font-size:12.5px}
+      .iconbtn{background:none;border:1px solid var(--line2);color:var(--muted);border-radius:8px;width:30px;height:30px;font-size:14px;flex:none}
+      .iconbtn:hover{color:#fff;border-color:var(--primary)}
+      .iconbtn.del:hover{color:var(--crit);border-color:var(--crit)}
+      .rowdel .pval,.rowdel .pkey{opacity:.45;text-decoration:line-through}
+      .addbar{padding:10px 16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:rgba(255,255,255,.015)}
+      .addbar select{background:var(--bg2);border:1px solid var(--line2);color:var(--ink);border-radius:8px;padding:6px 9px;font-size:13px;max-width:100%}
+      /* inspector */
+      .inspector{padding:16px;position:sticky;top:64px;max-height:calc(100vh - 84px);overflow-y:auto}
+      .inspector h3{margin:0 0 2px;font-size:16px}
+      .inspector .path{font-family:var(--mono);font-size:12px;color:var(--info);word-break:break-all}
+      .inspector .desc{color:var(--ink2);font-size:13.5px;margin:10px 0 4px}
+      .inspector .desc .zh{display:block;margin-top:3px;font-size:13px}
+      .kv{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid rgba(53,53,78,.6);font-size:13px}
+      .kv .kk{color:var(--muted)} .kv .vv{font-family:var(--mono);font-size:12.5px;text-align:right;word-break:break-all}
+      .inspector .empty{color:var(--muted);font-size:13.5px}
+      .fixbtn{margin-top:10px;width:100%}
+      .mini-finding{border:1px solid rgba(251,159,67,.45);background:rgba(251,159,67,.07);border-radius:10px;padding:10px 12px;margin-top:10px;font-size:13px}
+      .mini-finding.crit{border-color:rgba(245,54,92,.5);background:rgba(245,54,92,.07)}
+      .mini-finding b{display:block;margin-bottom:2px}
+      /* diagnostics */
+      .finding{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px}
+      .finding.crit{border-left:5px solid var(--crit)} .finding.warn{border-left:5px solid var(--warn)} .finding.info{border-left:5px solid var(--info)}
+      .finding h3{margin:0 0 4px;font-size:15.5px;display:flex;gap:9px;align-items:baseline;flex-wrap:wrap}
+      .sev{font-size:11px;font-weight:800;border-radius:6px;padding:2px 8px;text-transform:uppercase;letter-spacing:.05em}
+      .sev.crit{background:rgba(245,54,92,.16);color:#ff8fab}.sev.warn{background:rgba(251,159,67,.15);color:#ffc98a}.sev.info{background:rgba(17,205,239,.13);color:#7fe7fa}
+      .finding p{margin:5px 0;color:var(--ink2);font-size:14px}
+      .finding p .zh{display:block;color:var(--muted);font-size:13px;margin-top:2px}
+      .keylink{font-family:var(--mono);font-size:12px;background:var(--bg2);border:1px solid var(--line2);color:var(--info);
+        border-radius:6px;padding:2px 8px;margin:2px 3px 2px 0;display:inline-block;cursor:pointer}
+      .keylink:hover{border-color:var(--info)}
+      .okbox{background:var(--card);border:1px solid rgba(45,206,137,.4);border-radius:var(--radius);padding:18px;text-align:center;color:var(--ink2)}
+      .overview{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;margin-bottom:16px}
+      .overview h3{margin:0 0 10px;font-size:16px}
+      .ovgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px 26px}
+      .ovrow{font-size:13.5px;color:var(--ink2);padding:6px 0;border-bottom:1px solid rgba(53,53,78,.55)}
+      .ovrow b{color:var(--ink);display:block;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+      .ovrow .mono{color:var(--info);font-size:12.5px}
+      /* export */
+      .difftable{width:100%;border-collapse:collapse;font-size:13px}
+      .difftable th{text-align:left;color:var(--muted);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;padding:8px 10px;border-bottom:1px solid var(--line2)}
+      .difftable td{padding:8px 10px;border-bottom:1px solid rgba(53,53,78,.55);vertical-align:top}
+      .difftable .mono{font-size:12px;word-break:break-all}
+      .oldv{color:#ff8fab;text-decoration:line-through;word-break:break-all}
+      .newv{color:#7be7b1;word-break:break-all}
+      .codebox{background:#10101a;border:1px solid var(--line);border-radius:12px;padding:14px 16px;overflow:auto;max-height:520px}
+      .codebox pre{margin:0;font-family:var(--mono);font-size:12.5px;line-height:1.6;color:#d7e0f5;white-space:pre}
+      .expbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:14px 0 10px}
+      .seg{display:inline-flex;background:var(--bg2);border:1px solid var(--line2);border-radius:10px;overflow:hidden;flex-wrap:wrap}
+      .seg button{background:none;border:none;color:var(--ink2);padding:8px 13px;font-size:13px;font-weight:600}
+      .seg button.active{background:var(--grad);color:#fff}
+      .warnnote{border:1px solid rgba(251,159,67,.45);background:rgba(251,159,67,.07);border-radius:12px;padding:12px 15px;font-size:13.5px;color:var(--ink2);margin-bottom:14px}
+      #toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:var(--card2);color:#fff;
+        border:1px solid var(--line2);border-radius:11px;padding:11px 20px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:.25s;z-index:99;box-shadow:0 10px 30px rgba(0,0,0,.45);max-width:92vw;text-align:center}
+      #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+      .hidden{display:none !important}
+      /* ---------- explanation balloon ---------- */
+      .infobtn{background:none;border:1px solid var(--line2);color:var(--info);border-radius:50%;width:24px;height:24px;
+        font-size:13px;line-height:1;flex:none;font-style:italic;font-family:Georgia,serif}
+      .infobtn:hover{background:rgba(17,205,239,.12)}
+      #balloon{position:fixed;z-index:200;width:min(392px,calc(100vw - 20px));max-height:62vh;overflow-y:auto;
+        background:#262640;border:1px solid var(--line2);border-radius:14px;box-shadow:0 18px 44px rgba(0,0,0,.55);
+        padding:15px 17px;font-size:13.5px;display:none}
+      #balloon.show{display:block}
+      #balloon h4{margin:0 0 2px;font-size:14.5px}
+      #balloon .bpath{font-family:var(--mono);font-size:11.5px;color:var(--info);word-break:break-all}
+      #balloon .bdesc{color:var(--ink2);margin:8px 0 0}
+      #balloon .bdesc .zh{display:block;color:var(--muted);margin-top:4px}
+      #balloon .bsec{margin-top:11px;border-top:1px solid var(--line);padding-top:9px}
+      #balloon .bsec .bt{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+      #balloon a.wiki{color:var(--info);font-weight:700;text-decoration:none}
+      #balloon a.wiki:hover{text-decoration:underline}
+      .relchip{display:inline-block;font-family:var(--mono);font-size:11.5px;background:var(--bg2);border:1px solid var(--line2);
+        color:var(--ink2);border-radius:6px;padding:2px 8px;margin:2px 3px 2px 0;cursor:pointer}
+      .relchip:hover{border-color:var(--primary);color:#fff}
+      .factrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}
+      .fact{font-size:11.5px;background:var(--bg2);border:1px solid var(--line);border-radius:7px;padding:3px 9px;color:var(--ink2)}
+      .fact b{color:var(--ink)}
+      .unknown-note{border:1px dashed var(--line2);border-radius:9px;padding:9px 11px;color:var(--muted);font-size:12.5px;margin-top:9px}
+      @media (max-width:1180px){
+        .layout{grid-template-columns:200px minmax(0,1fr)}
+        .inspector{grid-column:1 / -1;position:static;max-height:none}
+        .stats{grid-template-columns:repeat(3,1fr)}
+      }
+      @media (max-width:760px){
+        main{padding:14px 10px 60px}
+        .grid3{grid-template-columns:1fr}
+        .stats{grid-template-columns:repeat(2,1fr)}
+        .layout{grid-template-columns:1fr}
+        .sidenav{position:static;display:flex;flex-wrap:wrap;gap:4px}
+        .sidenav h4{width:100%}
+        .navitem{width:auto;padding:6px 11px}
+        .prow{grid-template-columns:1fr;gap:6px}
+        .ovgrid{grid-template-columns:1fr}
+        .dropzone{padding:32px 16px}
+        .dropzone h1{font-size:21px}
+        .srcname{display:none}
+        .difftable th:nth-child(2),.difftable td:nth-child(2){display:none}
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <button class="btn primary" id="btnOpen">📂 Open config <span class="zh" style="color:#dfe4ff">打开配置</span></button>
+      <button class="btn" id="btnSampleTop">Load sample <span class="zh">示例</span></button>
+      <span class="srcname" id="srcName"></span>
+      <span class="spacer"></span>
+      <button class="btn ghost hidden" id="btnResetAll">↺ Reset all edits <span class="zh">撤销全部修改</span></button>
+      <button class="btn ghost hidden" id="btnClear">✕ Close file <span class="zh">关闭</span></button>
+      <input type="file" id="fileInput" class="hidden" multiple accept=".conf,.txt,.cfg,.uci,.gz,.tgz,.tar" />
+    </header>
+    <main>
+      <!-- ===== empty state ===== -->
+      <section id="emptyState">
+        <div class="dropzone" id="dropzone">
+          <h1>Drop an OpenWrt config export here <span class="zh">把从路由器导出的配置文件拖到这里</span></h1>
+          <p>Every parameter is parsed, explained, checked for logic errors and conflicts — each one editable in exactly one place — then exported back as a clean <span class="mono">uci batch</span> script. Everything runs locally in your browser; nothing is uploaded. <span class="zh" style="display:block;margin-top:4px">全部参数解析、说明、逻辑排错，每个参数只有一个可编辑位置，最后生成干净的 uci batch 脚本导回路由器。所有处理都在浏览器本地完成，不上传。</span></p>
+          <div class="dz-actions">
+            <button class="btn primary" id="btnOpen2">📂 Choose file(s) <span class="zh" style="color:#dfe4ff">选择文件</span></button>
+            <button class="btn" id="btnPaste">Paste text <span class="zh">粘贴文本</span></button>
+            <button class="btn" id="btnSample">Try the sample config <span class="zh">试用示例配置</span></button>
+          </div>
+          <div class="pastebox" id="pastebox">
+            <textarea id="pasteText" placeholder="Paste the output of `uci export`, `uci show`, or the contents of a file from /etc/config/ …"></textarea>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <button class="btn primary small" id="btnPasteGo">Parse <span class="zh" style="color:#dfe4ff">解析</span></button>
+              <button class="btn small" id="btnPasteCancel">Cancel <span class="zh">取消</span></button>
+            </div>
+          </div>
+        </div>
+        <div class="grid3">
+          <div class="mini-card">
+            <h3>How to export from the router <span class="zh">如何从路由器导出</span></h3>
+            <ul>
+              <li>LuCI: <b>System → Backup / Flash Firmware → Generate archive</b> (a <span class="mono">.tar.gz</span> — drop it here directly) <span class="zh">LuCI 备份包可直接拖入</span></li>
+              <li>SSH, one file with everything: <span class="zh">一条命令导出全部 UCI</span></li>
+            </ul>
+            <pre><code>uci export &gt; /tmp/router.conf
+# or per package:
+uci export network &gt; network.conf</code></pre>
+          </div>
+          <div class="mini-card">
+            <h3>Accepted formats <span class="zh">支持的格式</span></h3>
+            <ul>
+              <li><span class="mono">uci export</span> output (all packages in one text file) <span class="zh">全量导出文本</span></li>
+              <li>Individual files from <span class="mono">/etc/config/</span> — select several at once <span class="zh">可多选</span></li>
+              <li><span class="mono">sysupgrade -b</span> backup <span class="mono">.tar.gz</span> <span class="zh">系统备份包</span></li>
+              <li><span class="mono">uci show</span> output <span class="zh">show 格式</span></li>
+            </ul>
+          </div>
+          <div class="mini-card">
+            <h3>What the analyzer checks <span class="zh">逻辑分析会查什么</span></h3>
+            <ul>
+              <li>WAN firewall zone left open, open Wi-Fi, weak keys <span class="zh">防火墙与无线安全</span></li>
+              <li><span class="mono">noresolv</span> with no upstream DNS, DNS defined in conflicting places <span class="zh">DNS 冲突</span></li>
+              <li>DHCP pool overflowing the subnet <span class="zh">地址池越界</span></li>
+              <li>IPv6 prefix over-commitment, RA switched off <span class="zh">IPv6 前缀与 RA</span></li>
+              <li>PPPoE MTU, timezone mismatch, missing NAT… <span class="zh">等十余项规则</span></li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== workspace ===== -->
+      <section id="workspace" class="hidden">
+        <div class="stats" id="statsRow"></div>
+        <div class="viewtabs">
+          <button class="vtab active" data-view="params">Parameters <span class="zh" style="color:inherit;opacity:.75">参数</span></button>
+          <button class="vtab" data-view="diag">Logic analysis &amp; troubleshooting <span class="zh" style="color:inherit;opacity:.75">逻辑分析与排错</span><span class="badge hidden" id="diagBadge">0</span></button>
+          <button class="vtab" data-view="export">Changes &amp; export <span class="zh" style="color:inherit;opacity:.75">变更与导出</span><span class="badge blue hidden" id="chgBadge">0</span></button>
+        </div>
+
+        <div id="viewParams">
+          <div class="layout">
+            <aside class="panel sidenav" id="sideNav"></aside>
+            <div>
+              <div class="filterbar">
+                <input class="search" id="searchInput" type="search" placeholder="Search key, label or value — e.g. ip6assign, DNS, 192.168…  搜索参数" />
+                <select class="fselect" id="filterSel">
+                  <option value="all">All parameters 全部</option>
+                  <option value="changed">Changed only 只看已改</option>
+                  <option value="issues">With findings only 只看有问题</option>
+                  <option value="known">Documented only 只看有说明</option>
+                  <option value="unknown">Undocumented only 只看未收录</option>
+                </select>
+              </div>
+              <div id="paramList"></div>
+            </div>
+            <aside class="panel inspector" id="inspector"></aside>
+          </div>
+        </div>
+
+        <div id="viewDiag" class="hidden">
+          <div class="overview" id="overviewBox"></div>
+          <div id="findingsList"></div>
+        </div>
+
+        <div id="viewExport" class="hidden">
+          <div class="warnnote">⚠ <b>Review before you apply.</b> The generated script changes the router the moment it runs. Keep a backup (<span class="mono">sysupgrade -b</span>) and, for network changes, apply with a rollback plan — a wrong <span class="mono">network</span> value can lock you out. <span class="zh" style="display:block;margin-top:3px">执行前请先核对并备份；network 改错可能把自己锁在路由器外，建议预留回滚手段。</span></div>
+          <div class="panel" style="padding:6px 14px 12px;margin-bottom:16px">
+            <h3 style="margin:12px 0 4px">Changes <span class="zh">变更清单</span></h3>
+            <div id="diffBox"></div>
+          </div>
+          <div class="expbar">
+            <div class="seg" id="expSeg">
+              <button data-fmt="batch-diff" class="active">uci batch · changes only 仅变更</button>
+              <button data-fmt="batch-full">uci batch · full 全量</button>
+              <button data-fmt="export">uci export</button>
+              <button data-fmt="config">/etc/config file 单文件</button>
+              <button data-fmt="report">Diagnostics report 诊断报告</button>
+            </div>
+            <select class="fselect hidden" id="expPkgSel"></select>
+            <span class="spacer" style="flex:1"></span>
+            <button class="btn small" id="btnCopy">Copy 复制</button>
+            <button class="btn primary small" id="btnDownload">Download 下载</button>
+          </div>
+          <div class="codebox"><pre id="expPreview"></pre></div>
+        </div>
+      </section>
+    </main>
+    <div id="toast"></div>
+    <div id="balloon" role="dialog" aria-hidden="true"></div>
+    <script>
+      'use strict';
+      /* ================= utilities ================= */
+      const $=s=>document.querySelector(s), $$=s=>Array.from(document.querySelectorAll(s));
+      const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      let toastTimer=null;
+      function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2600);}
+      const isTrue=v=>['1','on','true','yes','enabled'].includes(String(v==null?'':v).trim().toLowerCase());
+      const isFalseV=v=>['0','off','false','no','disabled',''].includes(String(v==null?'':v).trim().toLowerCase());
+      function download(name,text,mime){const b=new Blob([text],{type:mime||'text/plain;charset=utf-8'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),800);}
+      function copyText(text){if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(()=>toast('Copied to clipboard 已复制'),()=>fallbackCopy(text));}else fallbackCopy(text);}
+      function fallbackCopy(text){const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');toast('Copied to clipboard 已复制');}catch(e){toast('Copy failed — select the text manually 复制失败，请手动选择');}ta.remove();}
+
+      /* ================= verified reference (knowledge base) =================
+         Every entry below is grounded in official OpenWrt material checked during
+         development: the stock config files shipped in openwrt/openwrt
+         (dnsmasq dhcp.conf, dropbear.config), the firewall4 stock config
+         (openwrt/firewall4), the odhcpd README UCI tables, and the OpenWrt wiki
+         network / IPv6 configuration references. Defaults are only stated where
+         those sources state them. */
+      const WIKI={
+        network:'https://openwrt.org/docs/guide-user/network/network_configuration',
+        ipv6:'https://openwrt.org/docs/guide-user/network/ipv6/configuration',
+        firewall:'https://openwrt.org/docs/guide-user/firewall/firewall_configuration',
+        dropbear:'https://openwrt.org/docs/guide-user/base-system/dropbear',
+        dhcpSrc:'https://raw.githubusercontent.com/openwrt/openwrt/main/package/network/services/dnsmasq/files/dhcp.conf',
+        fwSrc:'https://git.openwrt.org/?p=project/firewall4.git;a=blob;f=root/etc/config/firewall',
+        wifi:'https://openwrt.org/docs/guide-user/network/wifi/basic'
+      };
+      const WIKILBL={network:'OpenWrt Wiki · Network configuration',ipv6:'OpenWrt Wiki · IPv6 configuration',firewall:'OpenWrt Wiki · Firewall configuration',dropbear:'OpenWrt Wiki · Dropbear SSH',dhcpSrc:'Official stock config · dnsmasq dhcp.conf (source)',fwSrc:'Official stock config · firewall4 (source)',wifi:'OpenWrt Wiki · Wi-Fi configuration'};
+      const KB={};
+      function def(key,label,labelZh,t,en,zh,x){KB[key]=Object.assign({label: label,labelZh: labelZh,t: t||'string',en: en,zh: zh},x||{});}
+      /* ---- network: interfaces ---- */
+      def('network.interface.proto','Protocol','协议','enum','Selects the protocol handler that brings this interface up: static (fixed addresses below), dhcp / dhcpv6 (client), pppoe (PPPoE client), none/unmanaged (no IP configuration by netifd). Every other option in this section is interpreted by the chosen handler, so proto decides which of ipaddr, username or reqprefix even apply.','决定由哪个协议处理器拉起该接口：static 用下面填的固定地址，dhcp/dhcpv6 做客户端，pppoe 做拨号，none/unmanaged 不配 IP。本节其他参数都由所选处理器解释——填了 ipaddr 还是 username 有没有用，先看 proto。',{opts:['static','dhcp','dhcpv6','pppoe','ppp','l2tp','pptp','wireguard','none','unmanaged'],rel:['ipaddr','username','reqprefix','peerdns'],wiki:'network'});
+      def('network.interface.device','Device','物理设备','string','The underlying layer-2 device this logical interface binds to: a single port (eth0, wan), a bridge (br-lan), a VLAN device (eth0.10) or another interface (@wan for wan6 stacked on PPPoE). On DSA builds this replaces the legacy ifname option.','该逻辑接口绑定的二层设备：单端口（eth0、wan）、网桥（br-lan）、VLAN 设备（eth0.10），或另一个接口（wan6 叠在 PPPoE 上时写 @wan）。DSA 固件里它取代旧的 ifname。',{rel:['ifname','ports'],wiki:'network'});
+      def('network.interface.ifname','Device (legacy)','物理设备（旧式）','string','Legacy pre-DSA way of naming the underlying device(s). Current builds use the device option and config device sections instead; having both ifname and a bridge device for the same interface is a leftover worth cleaning up.','DSA 之前的旧式设备写法。现在的固件用 device 参数和 config device 段；同一接口同时有 ifname 和网桥 device，多半是升级残留，建议清理。',{rel:['device'],wiki:'network'});
+      def('network.interface.ipaddr','IPv4 address','IPv4 地址','ipcidr','Static IPv4 address of this interface (with netmask, or in CIDR notation on current builds). For lan this is the router address clients use as gateway and usually as DNS — it must sit inside the same subnet as the DHCP pool defined by dhcp.<iface> start/limit, and outside the pool itself.','本接口的静态 IPv4 地址（配合 netmask，或新固件的 CIDR 写法）。对 lan 来说，它是客户端的网关、通常也是 DNS 地址；必须与 dhcp 段 start/limit 算出的地址池同网段，且不要落在池子里面。',{rel:['netmask','start','limit'],wiki:'network'});
+      def('network.interface.netmask','IPv4 netmask','IPv4 子网掩码','ip4','Subnet mask paired with ipaddr for static interfaces. Together they define the local subnet: the DHCP pool, the firewall lan zone reachability and on-link routes all derive from this pair.','与 ipaddr 配套的子网掩码。两者共同决定本地子网：DHCP 地址池、防火墙 lan 区域的可达范围、直连路由都由此推导。',{rel:['ipaddr','start','limit'],wiki:'network'});
+      def('network.interface.ip6addr','IPv6 addresses','IPv6 地址','ip6cidr','Static IPv6 address(es) with prefix length, e.g. 2001:db8::1/64. Independent of ip6assign: ip6addr pins a fixed address, ip6assign delegates a whole prefix to the interface for clients.','静态 IPv6 地址（带前缀长度，如 2001:db8::1/64）。与 ip6assign 互相独立：ip6addr 是钉死一个地址，ip6assign 是把一整段前缀分给该接口供客户端使用。',{rel:['ip6assign','ip6gw'],wiki:'ipv6'});
+      def('network.interface.ip6assign','IPv6 assignment length','IPv6 分配长度','number','Length of the IPv6 prefix this (downstream) interface receives, carved out of the prefix delegated on the WAN side (see reqprefix on wan6) and out of ula_prefix. 64 gives the interface exactly one /64 subnet for SLAAC/DHCPv6. The assignments of all LAN interfaces together must fit inside the delegated prefix: from a /60 you can hand out one /60, four /62s or sixteen /64s — asking for more than the delegation holds is a classic reason clients end up with no global IPv6.','本（下游）接口分到的 IPv6 前缀长度，切自 WAN 侧委派来的前缀（见 wan6 的 reqprefix）和 ula_prefix。填 64 就是给该接口恰好一个 /64 子网供 SLAAC/DHCPv6 使用。所有 LAN 接口的分法加起来必须装得进委派前缀：/60 只能分出一个 /60、四个 /62 或十六个 /64——分超了，客户端就拿不到全局 IPv6，这是最经典的坑之一。',{rel:['reqprefix','ula_prefix','ip6prefix','ip6hint','ra'],wiki:'ipv6'});
+      def('network.interface.ip6prefix','IPv6 prefix','IPv6 前缀','cidr6','An extra IPv6 prefix routed to / distributed by this interface, in addition to what DHCPv6-PD provides. On wan6 it can carry a user-provided prefix; on downstream interfaces it is the pool from which ip6assign sub-prefixes are taken when no delegation exists.','额外路由到本接口、由本接口分发的一段 IPv6 前缀，独立于 DHCPv6-PD 的委派。在 wan6 上可填自备前缀；在下游接口上，当没有委派时，ip6assign 就从这里切子前缀。',{rel:['ip6assign','reqprefix'],wiki:'ipv6'});
+      def('network.interface.ip6hint','IPv6 hint','IPv6 子前缀编号','string','Hexadecimal sub-prefix ID that pins which slice of the delegated prefix this interface gets (e.g. hint 1 with a /60 delegation and ip6assign 64 selects subnet …1). Without it, netifd picks sub-prefixes in bring-up order, so LAN addresses can shuffle after a reboot.','十六进制子前缀编号，钉住该接口从委派前缀里切到哪一片（例如委派 /60、ip6assign 64、hint 1 就选 …1 号子网）。不填时 netifd 按接口拉起顺序分配，重启后 LAN 地址可能换位。',{rel:['ip6assign','reqprefix'],wiki:'ipv6'});
+      def('network.interface.ip6gw','IPv6 gateway','IPv6 网关','ip6','Static IPv6 default gateway for this interface, used with static ip6addr setups instead of router advertisements.','本接口的静态 IPv6 默认网关，配合静态 ip6addr 使用，代替路由通告给出默认路由。',{rel:['ip6addr'],wiki:'ipv6'});
+      def('network.interface.gateway','IPv4 gateway','IPv4 网关','ip4','Static IPv4 default gateway for this interface. Only meaningful with proto static; DHCP/PPPoE interfaces learn their gateway from the peer.','本接口的静态 IPv4 默认网关。只对 proto static 有意义；DHCP/PPPoE 接口的网关由对端下发。',{rel:['proto','ipaddr'],wiki:'network'});
+      def('network.interface.dns','DNS servers','DNS 服务器','ip','DNS servers registered for this interface. On a WAN interface they become the router\u2019s upstream resolvers — but for dhcp/dhcpv6/pppoe they are only used when peerdns is 0; with peerdns on, the ISP\u2019s servers supplement/replace them. dnsmasq then forwards client queries to whatever resolv.conf.auto collected here and on wan6.','为本接口登记的 DNS 服务器。在 WAN 接口上它们是路由器自己的上游解析——但对 dhcp/dhcpv6/pppoe，只有 peerdns 为 0 时才真正生效；peerdns 开着时运营商下发的 DNS 会补充/覆盖它们。dnsmasq 再把客户端查询转发给 resolv.conf.auto 从这里和 wan6 收集到的服务器。',{rel:['peerdns','server','noresolv','dhcp_option'],wiki:'network'});
+      def('network.interface.dns_search','DNS search domains','DNS 搜索域','string','Search domains registered alongside this interface\u2019s DNS servers, appended to unqualified hostnames by the resolver.','与本接口 DNS 服务器一同登记的搜索域，解析时给不完整主机名补后缀。',{rel:['dns'],wiki:'network'});
+      def('network.interface.peerdns','Use peer DNS','使用对端 DNS','bool','For dhcp, dhcpv6 and pppoe: accept the DNS servers advertised by the ISP (default 1). The classic trap — set custom dns on wan but leave peerdns at 1, and the ISP servers still win half the time. Set 0 to make the dns list authoritative. Remember wan and wan6 each have their own peerdns.','对 dhcp、dhcpv6、pppoe：是否接受运营商下发的 DNS（默认 1）。经典坑——在 wan 上填了自定义 dns 却没关 peerdns，运营商 DNS 仍会一半时间胜出。要让 dns 列表说了算就设 0。注意 wan 与 wan6 各有自己的 peerdns。',{def:'1',rel:['dns','noresolv','server'],wiki:'network'});
+      def('network.interface.defaultroute','Default route','默认路由','bool','Install a default route via this interface when it comes up (default 1). Set 0 on backup/secondary WANs so they do not steal the main default route.','接口拉起时是否经它安装默认路由（默认 1）。备用/次要 WAN 上设 0，避免它抢走主默认路由。',{def:'1',rel:['metric'],wiki:'network'});
+      def('network.interface.metric','Route metric','路由优先级','number','Priority of routes learned/installed via this interface; lower wins. The usual knob for failover ordering between two WANs.','经本接口安装的路由的优先级，越小越优先。双 WAN 主备排序就靠它。',{rel:['defaultroute'],wiki:'network'});
+      def('network.interface.reqprefix','Requested prefix','请求前缀','string','DHCPv6-PD behaviour on a dhcpv6 interface: auto (default), no (address only, no prefix for the LAN), or a hinted length 0–64 such as 56 or 60. This is where the prefix that lan ip6assign later slices up actually comes from — reqprefix no plus ip6assign 64 on lan means clients can only ever get ULA, never global addresses.','dhcpv6 接口的 DHCPv6-PD 行为：auto（默认）、no（只要地址、不要给 LAN 的前缀），或 0–64 的期望长度如 56、60。lan 的 ip6assign 要切的前缀就来自这里——reqprefix 填 no 而 lan 又写了 ip6assign 64，客户端就永远只有 ULA、拿不到全局地址。',{def:'auto',rel:['ip6assign','reqaddress','delegate'],wiki:'ipv6'});
+      def('network.interface.reqaddress','Requested address','请求地址','enum','Whether the DHCPv6 client also requests a global address (IA_NA) for the router itself: try (ask, accept refusal), force (fail without one), none (prefix only). Independent of reqprefix — many ISPs give a prefix but no WAN address, which works fine with try/none.','DHCPv6 客户端是否同时给路由器自己请求一个全局地址（IA_NA）：try（请求，被拒也接受）、force（拿不到就失败）、none（只要前缀）。与 reqprefix 独立——很多运营商只给前缀不给 WAN 地址，try/none 即可正常工作。',{opts:['try','force','none'],rel:['reqprefix'],wiki:'ipv6'});
+      def('network.interface.delegate','Delegate prefixes','向下委派前缀','bool','For dhcpv6 interfaces: pass received prefixes on to downstream interfaces (default 1). This is the middle link of the PD chain reqprefix → delegate → ip6assign; setting it to 0 silently stops LAN IPv6 even when the WAN received a delegation.','对 dhcpv6 接口：是否把收到的前缀继续分给下游接口（默认 1）。它是 PD 链条 reqprefix → delegate → ip6assign 的中间一环；设成 0，WAN 拿到了委派，LAN 的 IPv6 也会无声断掉。',{def:'1',rel:['reqprefix','ip6assign'],wiki:'ipv6'});
+      def('network.interface.mtu','MTU','最大传输单元','number','Maximum transmission unit of the interface in bytes. PPPoE spends 8 bytes on its header, so on a 1500-byte line the PPPoE MTU ceiling is 1492 — setting 1500 there fragments or black-holes large packets (RFC 4638 baby-jumbos excepted). The firewall mtu_fix option clamps TCP MSS for forwarded traffic, which hides some MTU mistakes but not all.','接口的最大传输单元（字节）。PPPoE 头要占 8 字节，1500 的线路上 PPPoE MTU 上限是 1492——填 1500 会让大包分片或黑洞（RFC 4638 巨帧除外）。防火墙的 mtu_fix 会钳制转发流量的 TCP MSS，能掩盖一部分 MTU 错误，但不是全部。',{rel:['mtu_fix'],wiki:'network'});
+      def('network.interface.username','Username','用户名','string','Login name for client protocols that authenticate: pppoe, ppp, pptp, l2tp. Pairs with password; both are ignored by static/dhcp.','需要认证的客户端协议（pppoe、ppp、pptp、l2tp）的登录名。与 password 配套；static/dhcp 会忽略它们。',{rel:['password','proto'],wiki:'network'});
+      def('network.interface.password','Password','密码','string','Password paired with username for pppoe/ppp/pptp/l2tp. Stored in clear text in /etc/config/network — anyone who can read the config export can read it, so treat exported files as secrets.','与 username 配套的密码（pppoe/ppp/pptp/l2tp）。它以明文存在 /etc/config/network 里——能读到配置文件的人就能读到它，导出文件请按秘密保管。',{rel:['username'],wiki:'network'});
+      def('network.interface.ipv6','IPv6 enabled','启用 IPv6','bool','Master IPv6 switch for PPP-based interfaces: with proto pppoe, ipv6 auto (default behaviour) spawns the companion wan_6 dhcpv6 interface, 1 negotiates IPv6 but leaves DHCPv6 to a manual wan6, 0 disables IPv6 entirely. A frequent cause of "PPPoE up but no IPv6" when set to 0.','PPP 类接口的 IPv6 总开关：proto 为 pppoe 时，auto（默认行为）会派生配套的 wan_6 dhcpv6 接口，1 只协商 IPv6、DHCPv6 交给手动建的 wan6，0 彻底关 IPv6。设成 0 是「PPPoE 通了却没 IPv6」的常见原因。',{rel:['proto','reqprefix'],wiki:'ipv6'});
+      def('network.interface.auto','Start on boot','开机自启','bool','Bring this interface up automatically (default 1). Interfaces with auto 0 are building blocks for other interfaces (e.g. a dslite/6rd base) and stay down until referenced.','开机是否自动拉起该接口（默认 1）。auto 为 0 的接口多是给其他接口当基底（如 dslite/6rd），被引用时才启动。',{def:'1',rel:['device'],wiki:'network'});
+      def('network.interface.macaddr','MAC address override','MAC 地址覆盖','mac','Override the hardware MAC of the underlying device as seen on the wire. Used to clone a previous router\u2019s WAN MAC when an ISP binds service to it.','覆盖底层设备在链路上呈现的硬件 MAC。运营商把业务和 MAC 绑定时，用来克隆旧路由器的 WAN MAC。',{rel:['device'],wiki:'network'});
+      def('network.interface.force_link','Force link up','强制链路在线','bool','Treat the interface as always having carrier, even without a physical link signal. Legacy option for odd DSL/switch hardware; normally leave unset.','即使没有物理链路信号也认为接口在线。给个别 DSL/交换硬件的旧选项，一般不要动。',{wiki:'network'});
+      def('network.globals.ula_prefix','ULA prefix','ULA 前缀','cidr6','The unique-local prefix (fc00::/7, in practice fd00::/8) this router uses for private IPv6. odhcpd advertises ULA addresses from it alongside global ones when dhcp.lan has RA on, so LAN devices keep stable internal IPv6 even when the ISP delegation changes or vanishes. If it still contains the placeholder text LOCAL, the first-boot script never generated a real one.','本路由器使用的唯一本地前缀（fc00::/7，实际多为 fd00::/8）。dhcp.lan 开 RA 时 odhcpd 会把它和全局前缀一起通告，运营商委派变化或消失时，内网设备仍有稳定的内部 IPv6。若里面还留着 LOCAL 占位字样，说明首次启动脚本没生成真正的随机前缀。',{rel:['ip6assign','ra'],wiki:'ipv6'});
+      def('network.globals.packet_steering','Packet steering','包调度','bool','Distribute packet processing across CPUs on multi-core devices (stock default off). Helps throughput on some targets, costs latency jitter on others.','在多核设备上把包处理分发到多个 CPU（出厂默认关）。某些机型能提吞吐，某些会增加延迟抖动。',{def:'0',wiki:'network'});
+      def('network.device.name','Bridge/device name','设备名','string','Name of the bridge or device this section creates (e.g. br-lan). Interfaces attach to it via their device option.','本段创建的网桥或设备名（如 br-lan）。接口用各自的 device 参数挂到它上面。',{rel:['device','ports'],wiki:'network'});
+      def('network.device.type','Device type','设备类型','enum','What this config device section creates — normally bridge. Interfaces then list member ports under ports.','本 device 段创建什么——通常是 bridge（网桥）。成员端口写在 ports 里。',{opts:['bridge'],rel:['ports'],wiki:'network'});
+      def('network.device.ports','Bridge ports','网桥成员端口','string','Physical ports enslaved to this bridge (list). On DSA builds these are lan1/lan2/wan style names; the WAN port normally belongs to no bridge and is bound directly by the wan interface.','加入本网桥的物理端口（列表）。DSA 固件里是 lan1/lan2/wan 这类名字；WAN 口通常不进任何网桥，由 wan 接口直接绑定。',{rel:['device'],wiki:'network'});
+      def('network.device.macaddr','MAC address','MAC 地址','mac','MAC address assigned to this bridge/device itself.','给网桥/设备本身设定的 MAC 地址。',{wiki:'network'});
+      def('network.device.mtu','MTU','最大传输单元','number','MTU of the underlying device/bridge. Must be at least as large as the MTU of any interface stacked on it, or frames get dropped at this layer.','底层设备/网桥的 MTU。必须不小于挂在它上面的任何接口的 MTU，否则帧会在这一层被丢。',{rel:['mtu'],wiki:'network'});
+      def('network.device.ipv6','IPv6 on device','设备 IPv6','bool','Enable IPv6 on this device (device-level switch, separate from the interface-level ipv6 option).','在本设备上启用 IPv6（设备级开关，与接口级的 ipv6 参数是两回事）。',{rel:['ipv6'],wiki:'ipv6'});
+      def('network.switch.name','Switch name','交换机名','string','Identifier of the swconfig switch this section configures (legacy non-DSA hardware).','本段配置的 swconfig 交换机标识（旧式非 DSA 硬件）。',{wiki:'network'});
+      def('network.switch.reset','Reset switch','复位交换机','bool','Reset the switch chip when the configuration is applied.','应用配置时是否复位交换芯片。',{wiki:'network'});
+      def('network.switch.enable_vlan','Enable VLANs','启用 VLAN','bool','Turn on 802.1q VLAN processing on a swconfig switch; the switch_vlan sections only take effect while this is 1.','在 swconfig 交换机上启用 802.1q VLAN 处理；switch_vlan 段只有在它为 1 时才生效。',{rel:['vlan'],wiki:'network'});
+      def('network.switch_vlan.device','Switch device','交换机设备','string','Switch (by name) this VLAN belongs to.','本 VLAN 所属的交换机（按名字引用）。',{rel:['vlan','ports'],wiki:'network'});
+      def('network.switch_vlan.vlan','VLAN ID','VLAN 编号','number','VLAN index/ID defined by this section; ports list below says which physical ports belong to it.','本段定义的 VLAN 编号；下面的 ports 决定哪些物理端口属于它。',{rel:['ports'],wiki:'network'});
+      def('network.switch_vlan.ports','VLAN ports','VLAN 端口','string','Port membership string for swconfig VLANs, e.g. "0 1 2 5t" — a t suffix marks the port tagged (CPU port is normally tagged).','swconfig VLAN 的端口成员表，如 "0 1 2 5t"——后缀 t 表示该端口打标签（CPU 端口通常要 t）。',{rel:['vlan'],wiki:'network'});
+      def('network.route.interface','Interface','接口','string','Outgoing logical interface for this static route.','这条静态路由的出接口（逻辑接口名）。',{rel:['target','gateway'],wiki:'network'});
+      def('network.route.target','Target network','目标网段','ipcidr','Destination prefix of the static route (CIDR).','静态路由的目标网段（CIDR）。',{rel:['gateway'],wiki:'network'});
+      def('network.route.gateway','Gateway','下一跳','ip4','Next-hop address for the static route; must be reachable on-link via the chosen interface.','静态路由的下一跳地址；必须能经所选接口直达。',{rel:['target','interface'],wiki:'network'});
+      def('network.route.metric','Metric','优先级','number','Route metric; lower is preferred when several routes match the same target.','路由优先级；多条路由命中同一目标时，数值小者优先。',{wiki:'network'});
+      /* ---- dhcp: dnsmasq ---- */
+      const DNSW='dhcpSrc';
+      def('dhcp.dnsmasq.domainneeded','Domain needed','要求完整域名','bool','Refuse to forward names without a dot/domain part upstream — plain hostnames are answered locally or not at all. Stock config ships 1.','不向上游转发没有点号/域名部分的查询——纯主机名只在本地回答。官方默认配置为 1。',{def:'1 (stock config)',wiki:DNSW});
+      def('dhcp.dnsmasq.boguspriv','Bogus private','拦截私有反查','bool','Never forward reverse lookups for private (RFC1918) ranges upstream; they are answered locally instead. Stock config ships 1. Turning it off leaks your LAN address plan to the ISP resolver.','不向上游转发私有（RFC1918）网段的反向查询，改为本地回答。官方默认配置为 1。关掉会把内网地址规划泄露给运营商解析器。',{def:'1 (stock config)',wiki:DNSW});
+      def('dhcp.dnsmasq.filterwin2k','Filter Windows ADS','过滤 Windows ADS 查询','bool','Filter the periodic SRV queries Windows machines emit for Active Directory discovery. Stock ships 0 (a dial-on-demand era leftover).','过滤 Windows 机器周期性发出的 AD 发现 SRV 查询。官方默认配置为 0（拨号按需时代的遗留选项）。',{def:'0 (stock config)',wiki:DNSW});
+      def('dhcp.dnsmasq.localise_queries','Localise queries','就近回答','bool','When a hostname has several A records, return only the ones on the same subnet as the querier. Stock ships 1.','某主机名有多个 A 记录时，只返回与查询者同子网的那些。官方默认配置为 1。',{def:'1 (stock config)',wiki:DNSW});
+      def('dhcp.dnsmasq.rebind_protection','DNS rebind protection','DNS 重绑定防护','bool','Drop upstream answers that contain private/RFC1918 addresses — the defence against DNS-rebinding attacks on your LAN. Stock ships 1. If a service legitimately needs public names resolving to LAN addresses, whitelist it with rebind_domain instead of disabling this globally.','丢弃包含私有/RFC1918 地址的上游应答——防御针对内网的 DNS 重绑定攻击。官方默认配置为 1。某个服务确实需要公网域名解析到内网地址时，用 rebind_domain 加白名单，不要全局关掉。',{def:'1 (stock config)',rel:['rebind_localhost','rebind_domain'],wiki:DNSW});
+      def('dhcp.dnsmasq.rebind_localhost','Allow localhost rebinding','允许 localhost 重绑定','bool','Exempts 127.0.0.0/8 answers from rebind protection (needed by some spam/RBL-style services). Stock ships 1.','让 127.0.0.0/8 的应答豁免重绑定防护（某些垃圾邮件/RBL 类服务需要）。官方默认配置为 1。',{def:'1 (stock config)',rel:['rebind_protection'],wiki:DNSW});
+      def('dhcp.dnsmasq.rebind_domain','Rebind whitelist','重绑定白名单','string','Domains exempted from rebind protection (list) — their answers may contain private addresses. Add only domains you trust to point at your LAN.','豁免重绑定防护的域名（列表）——它们的应答可以包含私有地址。只加确实要指向内网的可信域名。',{rel:['rebind_protection'],wiki:DNSW});
+      def('dhcp.dnsmasq.local','Local domain','本地域','string','Domain answered authoritatively from local data (hosts file, DHCP leases) and never forwarded upstream, written with slashes, e.g. /lan/. Pairs with domain.','只用本地数据（hosts 文件、DHCP 租约）权威回答、绝不向上游转发的域，写成 /lan/ 这种带斜杠形式。与 domain 配套。',{rel:['domain','expandhosts'],wiki:DNSW});
+      def('dhcp.dnsmasq.domain','Domain','域名','string','The local domain suffix for DHCP-assigned names: a client getting a lease as "laptop" becomes laptop.lan. Stock ships lan. Clients also receive it as their DNS search domain.','DHCP 分配名字的本地域后缀：租到地址的 "laptop" 会变成 laptop.lan。官方默认配置为 lan。客户端也会把它当作 DNS 搜索域。',{def:'lan (stock config)',rel:['local','expandhosts'],wiki:DNSW});
+      def('dhcp.dnsmasq.expandhosts','Expand hosts','展开主机名','bool','Append the domain to plain names from /etc/hosts so they resolve as full local names. Stock ships 1.','把 domain 后缀补到 /etc/hosts 里的纯主机名后，使其能按完整本地名解析。官方默认配置为 1。',{def:'1 (stock config)',rel:['domain'],wiki:DNSW});
+      def('dhcp.dnsmasq.nonegcache','No negative cache','不缓存否定应答','bool','Do not cache NXDOMAIN/no-data answers. Stock ships 0 (negative answers are cached, which is normally what you want).','不缓存 NXDOMAIN/无数据应答。官方默认配置为 0（缓存否定应答，通常正是想要的行为）。',{def:'0 (stock config)',rel:['cachesize'],wiki:DNSW});
+      def('dhcp.dnsmasq.cachesize','Cache size','缓存大小','number','Maximum number of DNS answers dnsmasq caches. Stock config ships 1000; 0 disables caching entirely (every query goes upstream — slower, and the classic accidental cause of "DNS feels laggy").','dnsmasq 最多缓存的应答条数。官方默认配置为 1000；0 表示完全关缓存（每次查询都走上游——更慢，也是「DNS 总觉得卡」的经典误设）。',{def:'1000 (stock config)',rel:['nonegcache'],wiki:DNSW});
+      def('dhcp.dnsmasq.authoritative','Authoritative DHCP','权威 DHCP','bool','Declare this dnsmasq the only DHCP server on the segment: it answers fast and NAKs wrong leases. Correct on a normal single-router LAN (stock ships 1); wrong if another DHCP server shares the segment.','宣布本 dnsmasq 是该网段唯一的 DHCP 服务器：快速应答并 NAK 掉错误租约。单路由器内网里是对的（官方默认配置为 1）；同网段还有别的 DHCP 服务器时就错了。',{def:'1 (stock config)',wiki:DNSW});
+      def('dhcp.dnsmasq.readethers','Read /etc/ethers','读取 ethers','bool','Read static MAC↔hostname mappings from /etc/ethers in addition to config host sections. Stock ships 1.','除 config host 段外，还从 /etc/ethers 读取静态 MAC↔主机名映射。官方默认配置为 1。',{def:'1 (stock config)',wiki:DNSW});
+      def('dhcp.dnsmasq.leasefile','Lease file','租约文件','string','Where dnsmasq stores DHCP leases. Stock: /tmp/dhcp.leases (tmpfs — leases do not survive reboot).','dnsmasq 存放 DHCP 租约的位置。官方默认配置：/tmp/dhcp.leases（tmpfs——重启后租约不保留）。',{def:'/tmp/dhcp.leases (stock)',wiki:DNSW});
+      def('dhcp.dnsmasq.resolvfile','Resolv file','上游解析文件','string','File dnsmasq reads its upstream servers from. Stock: /tmp/resolv.conf.d/resolv.conf.auto, which netifd fills from the WAN interfaces\u2019 dns/peerdns settings. Pointing it elsewhere (or turning on noresolv) changes the whole upstream chain — see noresolv.','dnsmasq 读取上游服务器的文件。官方默认配置：/tmp/resolv.conf.d/resolv.conf.auto，由 netifd 按各 WAN 接口的 dns/peerdns 设置生成。改指别处（或打开 noresolv）会改变整条上游链——见 noresolv。',{def:'/tmp/resolv.conf.d/resolv.conf.auto (stock)',rel:['noresolv','peerdns','dns'],wiki:DNSW});
+      def('dhcp.dnsmasq.noresolv','No resolv file','不用 resolv 文件','bool','Ignore the resolv file completely: upstream servers then come only from the server list in this section. The sharpest DNS trap in OpenWrt — noresolv 1 with an empty server list means dnsmasq has no upstream at all and every client lookup fails, while the router itself may still resolve via its own path.','完全忽略 resolv 文件：上游服务器只来自本段的 server 列表。OpenWrt 里最锋利的 DNS 坑——noresolv 为 1 而 server 列表为空，dnsmasq 就没有任何上游，所有客户端查询失败，而路由器自己可能还能解析。',{def:'0',rel:['server','resolvfile'],wiki:DNSW});
+      def('dhcp.dnsmasq.server','Upstream DNS servers','上游 DNS 服务器','ip','Explicit upstream forwarders (list). Plain IPs are used for all queries; the /domain/ip form routes only that domain to that server (split DNS). Together with noresolv this list becomes the only upstream path; without noresolv it supplements the WAN-learned servers.','显式上游转发服务器（列表）。纯 IP 用于所有查询；/域名/IP 形式只把该域名路由到指定服务器（分流 DNS）。与 noresolv 组合时，这个列表是唯一上游；不开 noresolv 时，它补充 WAN 学到的服务器。',{rel:['noresolv','dns','peerdns'],wiki:DNSW});
+      def('dhcp.dnsmasq.address','Address overrides','地址覆盖','string','Hard-coded answers in /domain/ip form (list): queries for domain always return ip. The mechanism behind many adblock/DNS-hijack setups — and behind "this one site always resolves to a dead LAN IP" bugs when the target moved.','/域名/IP 形式的写死应答（列表）：该域名的查询永远返回指定 IP。很多广告拦截/DNS 劫持靠它实现——目标 IP 变了没人更新时，也会表现为「某个网站总是解析到一个死掉的内网 IP」。',{wiki:DNSW});
+      def('dhcp.dnsmasq.nonwildcard','Bind to interfaces','绑定接口','bool','Bind dnsmasq sockets to its interfaces and track them as they come and go, instead of one wildcard socket. Stock ships 1.','把 dnsmasq 套接字绑到各接口并随接口上下线跟踪，而不是用一个通配套接字。官方默认配置为 1。',{def:'1 (stock config)',rel:['localservice'],wiki:DNSW});
+      def('dhcp.dnsmasq.localservice','Local service only','仅本地服务','bool','Only answer DNS/DHCP queries arriving from directly connected local subnets. Stock ships 1 — turning it off exposes your resolver to other networks that can route to the router.','只回答来自直连本地子网的 DNS/DHCP 查询。官方默认配置为 1——关掉会把你的解析器暴露给任何能路由到路由器的网络。',{def:'1 (stock config)',wiki:DNSW});
+      def('dhcp.dnsmasq.ednspacket_max','Max EDNS packet','EDNS 最大包','number','Largest EDNS.0 UDP packet dnsmasq advertises/accepts. Stock ships 1232 — the DNS flag-day value chosen to avoid IP fragmentation.','dnsmasq 通告/接受的最大 EDNS.0 UDP 包。官方默认配置为 1232——DNS flag day 选定的避免 IP 分片的值。',{def:'1232 (stock config)',wiki:DNSW});
+      def('dhcp.dnsmasq.filter_aaaa','Filter AAAA','过滤 AAAA','bool','Strip AAAA (IPv6) answers from upstream replies. A workaround for broken IPv6 paths; on a healthy dual-stack LAN it just forces everything onto IPv4. Stock ships 0.','从上游应答中剥掉 AAAA（IPv6）记录。是给坏掉的 IPv6 通道用的 workaround；在健康的双栈内网里，它只会把一切逼回 IPv4。官方默认配置为 0。',{def:'0 (stock config)',rel:['filter_a'],wiki:DNSW});
+      def('dhcp.dnsmasq.filter_a','Filter A','过滤 A','bool','Strip A (IPv4) answers from upstream replies — the mirror of filter_aaaa, for IPv6-only experiments. Stock ships 0.','从上游应答中剥掉 A（IPv4）记录——filter_aaaa 的镜像，给纯 IPv6 实验用。官方默认配置为 0。',{def:'0 (stock config)',rel:['filter_aaaa'],wiki:DNSW});
+      def('dhcp.dnsmasq.strictorder','Strict server order','严格服务器顺序','bool','Query upstream servers strictly in listed order instead of racing/failover order. Makes DNS behaviour deterministic (first server wins unless it dies) — useful when server #1 is a local filter and #2 must only be a fallback.','严格按列出顺序查询上游，而不是竞速/故障切换顺序。行为变得确定（第一个服务器优先，除非它挂了）——第一个是本地过滤器、第二个只作兜底时很有用。',{rel:['server'],wiki:DNSW});
+      def('dhcp.dnsmasq.nohosts','Ignore hosts file','忽略 hosts 文件','bool','Do not read /etc/hosts at all — local static names then only come from config host sections.','完全不读 /etc/hosts——本地静态名字只能来自 config host 段。',{rel:['readethers'],wiki:DNSW});
+      def('dhcp.dnsmasq.port','DNS port','DNS 端口','number','Port dnsmasq listens on for DNS. 53 is the only value clients will find automatically; moving it is for running a second resolver alongside.','dnsmasq 监听 DNS 的端口。客户端能自动找到的只有 53；改端口是为了并行跑第二个解析器。',{def:'53',wiki:DNSW});
+      def('dhcp.dnsmasq.enable_tftp','Enable TFTP','启用 TFTP','bool','Turn on dnsmasq\u2019s built-in TFTP server (netboot). Off unless you PXE-boot something — an enabled TFTP server on a LAN is a quiet file-read exposure.','开启 dnsmasq 内置 TFTP 服务器（网络启动）。没有 PXE 启动需求就关着——内网里开着的 TFTP 是个安静的文件读取面。',{def:'0',wiki:DNSW});
+      def('dhcp.dnsmasq.tftp_root','TFTP root','TFTP 根目录','string','Directory served by the built-in TFTP server when enable_tftp is on.','enable_tftp 开启时，内置 TFTP 服务器对外提供的目录。',{rel:['enable_tftp'],wiki:DNSW});
+      def('dhcp.dnsmasq.interface','Listen interfaces','监听接口','string','Restrict dnsmasq to these interfaces (list). Combined with notinterface; normally unset because the dhcp sections already scope service per interface.','把 dnsmasq 限制在这些接口上（列表）。与 notinterface 配合；通常不填，因为 dhcp 段已经按接口划分了服务范围。',{rel:['notinterface'],wiki:DNSW});
+      def('dhcp.dnsmasq.notinterface','Excluded interfaces','排除接口','string','Interfaces dnsmasq must never serve (list), e.g. lo or a WAN device.','dnsmasq 绝不能提供服务的接口（列表），如 lo 或某个 WAN 设备。',{rel:['interface'],wiki:DNSW});
+      def('dhcp.dnsmasq.bogusnxdomain','Bogus NXDOMAIN','假 NXDOMAIN 地址','ip','Upstream servers sometimes answer with these IPs instead of NXDOMAIN (list); dnsmasq converts such answers back into NXDOMAIN.','某些上游会用这些 IP 代替 NXDOMAIN 应答（列表）；dnsmasq 会把这类应答还原成 NXDOMAIN。',{wiki:DNSW});
+      /* ---- dhcp: per-interface pools & odhcpd ---- */
+      def('dhcp.dhcp.interface','Interface','对应接口','string','Which logical network interface this section serves. The section name is usually the same, but this option is the actual binding — the pool math (start/limit) is computed against that interface\u2019s ipaddr/netmask in the network config, not against the section name.','本段服务哪个逻辑网络接口。段名通常与之相同，但真正起绑定作用的是这个参数——地址池（start/limit）是按 network 里那个接口的 ipaddr/netmask 算的，不按段名。',{rel:['start','limit','ipaddr'],wiki:DNSW});
+      def('dhcp.dhcp.start','Pool start offset','地址池起始偏移','number','Offset of the first pooled address from the interface\u2019s network address. Stock lan: start 100 on 192.168.1.0/24 → first lease is 192.168.1.100. start + limit must fit inside the subnet, and the router\u2019s own ipaddr must stay outside the pool.','第一个池内地址相对接口网络地址的偏移。默认 lan：start 100 在 192.168.1.0/24 上 → 第一个租约是 192.168.1.100。start + limit 必须装得进子网，且路由器自己的 ipaddr 要留在池外。',{def:'100 (stock config)',rel:['limit','ipaddr','netmask'],wiki:DNSW});
+      def('dhcp.dhcp.limit','Pool size','地址池大小','number','How many addresses the pool hands out. Stock lan: limit 150 → .100–.249. start offset + limit beyond the subnet size means the top of the pool is unreachable/invalid — clients there get addresses the router cannot route to on-link.','地址池发放的地址数量。默认 lan：limit 150 → .100–.249。start 偏移 + limit 超出子网容量，池子顶端就是无效地址——拿到的客户端会得到一个路由器无法直连的地址。',{def:'150 (stock config)',rel:['start','ipaddr','netmask'],wiki:DNSW});
+      def('dhcp.dhcp.leasetime','Lease time','租约时长','string','How long a lease stays valid, e.g. 12h (stock), 24h, 7d, or infinite. Short leases churn the lease file and re-ARP the LAN; very long leases keep dead devices "present" for days.','租约有效时长，如 12h（默认）、24h、7d 或 infinite。太短会让租约文件频繁变动、内网反复 ARP；太长会让下线设备「在场」好几天。',{def:'12h (stock config)',wiki:DNSW});
+      def('dhcp.dhcp.ignore','Ignore interface','忽略该接口','bool','Disable all DHCP/DHCPv6/RA service on this interface. The stock config ships a dhcp wan section with ignore 1 so the WAN side never gets served, even though a section exists.','关闭该接口上的全部 DHCP/DHCPv6/RA 服务。默认配置里就有一个 ignore 为 1 的 dhcp wan 段——段存在，但 WAN 侧永远不会被提供服务。',{def:'0',rel:['interface'],wiki:DNSW});
+      def('dhcp.dhcp.dhcpv4','DHCPv4 mode','DHCPv4 模式','enum','DHCPv4 service mode for odhcpd (full build): server or disabled. When dhcp.odhcpd maindhcp is 0 (the normal case), dnsmasq serves DHCPv4 and this mainly matters for coordination; stock lan ships server.','odhcpd（完整版）的 DHCPv4 服务模式：server 或 disabled。dhcp.odhcpd 的 maindhcp 为 0（常态）时 DHCPv4 由 dnsmasq 提供，本参数主要起协调作用；默认 lan 为 server。',{opts:['server','disabled'],def:'disabled when unset (odhcpd); stock lan: server',rel:['maindhcp','ignore'],wiki:DNSW});
+      def('dhcp.dhcp.dhcpv6','DHCPv6 mode','DHCPv6 模式','enum','odhcpd DHCPv6 mode: server (stateful/stateless service + PD server), relay (forward to an upstream server), hybrid (relay that falls back to server), disabled. Pairs with ra: clients get addresses from DHCPv6 only if the RA flags point them there — ra_management/ra_flags decide that, this option only runs the server.','odhcpd 的 DHCPv6 模式：server（有状态/无状态服务 + PD 服务器）、relay（转发给上游服务器）、hybrid（先 relay、失败回退 server）、disabled。与 ra 配套：客户端是否从 DHCPv6 拿地址由 RA 标志决定（ra_management/ra_flags），本参数只是把服务器跑起来。',{opts:['disabled','server','relay','hybrid'],def:'disabled when unset (odhcpd); stock lan: server',rel:['ra','ra_flags','ip6assign'],wiki:'ipv6'});
+      def('dhcp.dhcp.ra','RA mode','RA 模式','enum','odhcpd router-advertisement mode: server (this router advertises prefixes and itself as gateway), relay, hybrid, disabled. RA is what actually tells LAN clients "IPv6 lives here, use SLAAC/DHCPv6" — an interface can have ip6assign set and still give clients nothing if ra is disabled and nothing else advertises.','odhcpd 的路由通告模式：server（本路由器通告前缀并自任网关）、relay、hybrid、disabled。真正告诉内网客户端「这里有 IPv6、来用 SLAAC/DHCPv6」的就是 RA——接口 ip6assign 填了，但 ra 是 disabled 又没别的东西通告，客户端照样什么都拿不到。',{opts:['disabled','server','relay','hybrid'],def:'disabled when unset (odhcpd); stock lan: server',rel:['dhcpv6','ip6assign','ra_flags','ra_default'],wiki:'ipv6'});
+      def('dhcp.dhcp.ra_flags','RA flags','RA 标志','string','Extra flags in router advertisements (list): managed-config sets the M flag (clients must use DHCPv6 for addresses), other-config sets the O flag (clients use DHCPv6 for DNS etc. but SLAAC for addresses). Stock odhcpd defaults add both on lan. These flags — not the dhcpv6 mode alone — decide whether clients bother asking DHCPv6 at all.','路由通告里的附加标志（列表）：managed-config 置 M 标志（客户端必须用 DHCPv6 拿地址），other-config 置 O 标志（地址用 SLAAC、DNS 等走 DHCPv6）。odhcpd 默认给 lan 加上两者。决定客户端会不会去问 DHCPv6 的是这些标志，不只是 dhcpv6 模式本身。',{rel:['ra','dhcpv6','ra_management','ra_slaac'],wiki:'ipv6'});
+      def('dhcp.dhcp.ra_slaac','SLAAC in RA','RA 中启用 SLAAC','bool','Whether RAs from this interface carry prefix information with the autonomous flag, i.e. whether clients may form SLAAC addresses. Turning it off pushes clients to DHCPv6-only addressing (when dhcpv6 is server and M flag set).','本接口的 RA 是否携带带自主标志的前缀信息，即客户端能否用 SLAAC 生成地址。关掉可把客户端推向纯 DHCPv6 寻址（需 dhcpv6 为 server 且置 M 标志）。',{def:'1',rel:['ra_flags','dhcpv6'],wiki:'ipv6'});
+      def('dhcp.dhcp.ra_management','RA management mode','RA 管理模式','number','Legacy odhcpd shorthand controlling the M/O flags: 0 = SLAAC only, 1 = SLAAC + stateless DHCPv6, 2 = DHCPv6-only (stateful). Superseded by explicit ra_flags on current builds; if both exist they must not contradict each other.','odhcpd 早期控制 M/O 标志的简写：0 = 仅 SLAAC，1 = SLAAC + 无状态 DHCPv6，2 = 仅 DHCPv6（有状态）。新固件上已被显式的 ra_flags 取代；两者同时存在时不能互相矛盾。',{rel:['ra_flags','dhcpv6'],wiki:'ipv6'});
+      def('dhcp.dhcp.ra_default','RA default route','RA 默认路由','number','odhcpd: how strongly RAs advertise this router as default gateway — 0: default behaviour, 1: advertise even with no public address, 2: advertise regardless. Forcing 1/2 on a router whose WAN IPv6 is broken gives clients a default route into a black hole.','odhcpd：RA 把本路由器通告为默认网关的力度——0 默认行为，1 没有公网地址也通告，2 无条件通告。WAN IPv6 已坏的路由器上强行填 1/2，等于给客户端一条通向黑洞的默认路由。',{def:'0',rel:['ra'],wiki:'ipv6'});
+      def('dhcp.dhcp.ndp','NDP mode','NDP 模式','enum','Neighbour Discovery proxying mode: relay/hybrid let devices on this interface be reached across routed segments when no delegation exists (the relay trio ra/dhcpv6/ndp is normally set together), disabled is normal when real prefixes are assigned.','邻居发现代理模式：relay/hybrid 让没有委派前缀时，本接口的设备也能跨路由网段被访问（ra/dhcpv6/ndp 三个 relay 通常成套设置）；有真实前缀分配时用 disabled 即可。',{opts:['disabled','relay','hybrid'],def:'disabled when unset (odhcpd)',rel:['ra','dhcpv6'],wiki:'ipv6'});
+      def('dhcp.dhcp.master','Relay master','Relay 主接口','bool','Marks this interface as the upstream (master) side for RA/DHCPv6/NDP relay mode; exactly one interface in a relay setup should carry it.','标记本接口为 RA/DHCPv6/NDP relay 部署中的上游（主）侧；一套 relay 配置里应只有一个接口带它。',{def:'0',rel:['ra','dhcpv6','ndp'],wiki:'ipv6'});
+      def('dhcp.dhcp.force','Force service','强制提供服务','bool','Serve DHCP on this interface even when odhcpd/dnsmasq would otherwise skip it (e.g. the interface has no suitable address yet).','即使 odhcpd/dnsmasq 本会跳过（如接口还没有合适地址），也强制在本接口提供 DHCP 服务。',{def:'0',wiki:DNSW});
+      def('dhcp.dhcp.dynamicdhcp','Dynamic DHCP','动态分配','bool','Allow leases for clients that have no static host entry (odhcpd default 1). Turning it off makes the pool serve only known hosts — a deliberate lockdown, or a mysterious "new devices never get an address" when set by accident.','允许给没有静态 host 条目的客户端发租约（odhcpd 默认 1）。关掉后地址池只服务已知主机——有意锁定可以，误开就会变成「新设备永远拿不到地址」。',{def:'1',rel:['start','limit'],wiki:DNSW});
+      def('dhcp.dhcp.dhcp_option','DHCP options','DHCP 选项','string','Extra DHCP options sent to clients on this interface (list), format "code,value" — most importantly 6,<dns> (DNS servers handed directly to clients), 3,<ip> (gateway), 42 (NTP), 121 (classless routes). Option 6 set here bypasses dnsmasq\u2019s own resolver: clients then talk to those servers directly, so if 6 points at a dead or stale address, name resolution breaks even though dnsmasq is healthy. If unset, clients are told to use the router.','发给本接口客户端的额外 DHCP 选项（列表），格式 "编号,值"——最重要的是 6,<dns>（直接发给客户端的 DNS 服务器）、3,<ip>（网关）、42（NTP）、121（无类路由）。这里设了选项 6，客户端就绕过 dnsmasq 的解析器直接去问那些服务器；6 指向失效地址时，dnsmasq 再健康，客户端解析也会坏。不设时，客户端被告知使用路由器作 DNS。',{rel:['dns','server','interface'],wiki:DNSW});
+      def('dhcp.host.name','Host name','主机名','string','Name of this static host entry; also registered in DNS (with the dnsmasq domain appended) when the host takes a lease.','本静态主机条目的名字；主机拿到租约时也会以此名注册进 DNS（后接 dnsmasq 的 domain）。',{rel:['mac','ip'],wiki:DNSW});
+      def('dhcp.host.mac','MAC address','MAC 地址','mac','Hardware address this static lease/reservation matches (can be a list for multi-NIC hosts).','本静态租约/预留匹配的硬件地址（多网卡主机可填列表）。',{rel:['ip','name'],wiki:DNSW});
+      def('dhcp.host.ip','Reserved IP','预留 IP','ip4','Address always given to the matching MAC. Should sit inside the interface subnet but outside the dynamic pool (start..start+limit) to avoid double-allocation edge cases.','始终发给匹配 MAC 的地址。应在接口子网内、动态池（start..start+limit）之外，避免双重分配的边界情况。',{rel:['mac','start','limit'],wiki:DNSW});
+      def('dhcp.host.leasetime','Lease time','租约时长','string','Per-host lease duration overriding the pool leasetime; "infinite" pins the lease permanently.','覆盖池级 leasetime 的单主机租约时长；"infinite" 表示永久钉住。',{rel:['leasetime'],wiki:DNSW});
+      def('dhcp.host.dns','Register in DNS','注册 DNS','bool','Publish this host\u2019s name/address in dnsmasq\u2019s DNS (default behaviour on). Applies to hosts that may not take DHCP leases.','把本主机的名字/地址发布到 dnsmasq 的 DNS 中（默认开）。对可能不走 DHCP 租约的主机也有效。',{def:'1',rel:['name'],wiki:DNSW});
+      def('dhcp.host.duid','DHCPv6 DUID','DHCPv6 DUID','string','DHCPv6 client identifier used to match this host for static IPv6 leases (IPv6 has no MAC-based matching by default).','用于匹配本主机静态 IPv6 租约的 DHCPv6 客户端标识（IPv6 默认不按 MAC 匹配）。',{rel:['name'],wiki:'ipv6'});
+      def('dhcp.odhcpd.maindhcp','Main DHCP server','主 DHCP 服务器','bool','Use odhcpd (full build only) as the main DHCPv4 server instead of dnsmasq. Default 0 — the two daemons coordinate: dnsmasq does DHCPv4, odhcpd does RA/DHCPv6. Flipping this changes which daemon owns the pool options above.','用 odhcpd（仅完整版）做主 DHCPv4 服务器而不是 dnsmasq。默认 0——两个守护进程分工：dnsmasq 管 DHCPv4，odhcpd 管 RA/DHCPv6。改这个值，上面的地址池参数就换了主人。',{def:'0',rel:['dhcpv4','ra','dhcpv6'],wiki:DNSW});
+      def('dhcp.odhcpd.leasefile','Lease file','租约文件','string','odhcpd\u2019s lease file. Stock default set by uci-defaults: /tmp/hosts/odhcpd.','odhcpd 的租约文件。uci-defaults 写入的出厂值：/tmp/hosts/odhcpd。',{def:'/tmp/hosts/odhcpd (stock)',wiki:DNSW});
+      def('dhcp.odhcpd.loglevel','Log level','日志级别','number','odhcpd verbosity (syslog level; stock uci-defaults sets 4).','odhcpd 的日志详细程度（syslog 级别；uci-defaults 出厂设 4）。',{def:'4 (stock uci-defaults)',wiki:DNSW});
+      def('dhcp.odhcpd.piofolder','PIO folder','PIO 目录','string','Directory where odhcpd persists prefix-information state (RFC 9096). Stock uci-defaults points it at tmpfs (/tmp/odhcpd-piofolder) to avoid wearing the flash.','odhcpd 持久化前缀信息状态（RFC 9096）的目录。uci-defaults 出厂指向 tmpfs（/tmp/odhcpd-piofolder），避免磨 flash。',{wiki:'ipv6'});
+      /* ---- wireless ---- */
+      const WW='wifi';
+      def('wireless.wifi-device.type','Driver type','驱动类型','string','Radio driver framework for this device — mac80211 on virtually all current hardware. Generated by the wireless detection at first boot; rarely edited by hand.','本射频的驱动框架——现在几乎所有硬件都是 mac80211。首次启动时由无线检测生成，一般不手改。',{wiki:WW});
+      def('wireless.wifi-device.channel','Channel','信道','string','Operating channel: a number, or auto to let hostapd/driver pick. On 5 GHz, DFS channels can force a channel change when radar is detected; a "fixed" channel that keeps moving is usually DFS, not a config error.','工作信道：数字，或 auto 让 hostapd/驱动自选。5 GHz 的 DFS 信道在检测到雷达时会被迫换信道——「固定信道老是自己变」多半是 DFS，不是配置错误。',{rel:['band','htmode','country'],wiki:WW});
+      def('wireless.wifi-device.htmode','Channel width mode','频宽模式','enum','PHY mode and channel width: HT (802.11n), VHT (11ac), HE (11ax), followed by width 20/40/80/160. Wider is faster only when the spectrum is clean; VHT80 in a crowded building often performs worse than VHT40. Must be supported by both radio band and country rules.','物理层模式与频宽：HT（802.11n）、VHT（11ac）、HE（11ax），后接宽度 20/40/80/160。频谱干净时越宽越快；楼宇密集处 VHT80 常不如 VHT40。必须同时被射频频段和国家规则支持。',{opts:['HT20','HT40','VHT20','VHT40','VHT80','VHT160','HE20','HE40','HE80','HE160','NOHT'],rel:['channel','band','country'],wiki:WW});
+      def('wireless.wifi-device.band','Band','频段','enum','Frequency band this radio serves: 2g, 5g, 6g or 60g. Decides which channels and htmodes are legal/offered for the wifi-ifaces on this device.','本射频服务的频段：2g、5g、6g 或 60g。决定挂在该设备上的 wifi-iface 能用哪些信道和 htmode。',{opts:['2g','5g','6g','60g'],rel:['channel','htmode'],wiki:WW});
+      def('wireless.wifi-device.country','Country code','国家代码','string','ISO country code driving the regulatory domain: allowed channels and maximum transmit power come from this, not from txpower alone. Wrong/missing country is a top cause of "5 GHz SSID invisible" (radio stuck on DFS-only channels or reduced power) and of clients that cannot see channels their own region forbids.','决定法规域的 ISO 国家代码：可用信道和最大发射功率由它决定，不只看 txpower。国家码缺失/错误是「5 GHz SSID 搜不到」的头号原因（射频卡在 DFS 信道或低功率上），也会让客户端看不到其本地区禁用的信道。',{rel:['channel','txpower'],wiki:WW});
+      def('wireless.wifi-device.txpower','Transmit power','发射功率','string','Transmit power in dBm, or auto for the regulatory maximum. The country setting caps what is actually used, so raising txpower beyond the cap changes nothing.','发射功率（dBm），或 auto 表示法规上限。country 决定实际上限，txpower 填得再高也不会突破。',{rel:['country'],wiki:WW});
+      def('wireless.wifi-device.hwmode','Hardware mode (legacy)','硬件模式（旧式）','enum','Legacy 802.11 mode selector (11a/11b/11g/11n/11ac/11ax) used by older drivers; mac80211 setups today express this via band + htmode.','旧式 802.11 模式选择（11a/11b/11g/11n/11ac/11ax），给老驱动用；现在的 mac80211 配置用 band + htmode 表达。',{opts:['11a','11b','11g','11n','11ac','11ax'],rel:['band','htmode'],wiki:WW});
+      def('wireless.wifi-device.disabled','Radio disabled','射频禁用','bool','Turns the whole radio off. Every wifi-iface on this device goes down with it, regardless of their own disabled flags.','关掉整个射频。挂在该设备上的所有 wifi-iface 都会跟着下线，不管它们自己的 disabled 是什么。',{def:'0',rel:['disabled'],wiki:WW});
+      def('wireless.wifi-device.distance','Distance optimisation','距离优化','number','Tells the driver the maximum expected link distance in metres, tuning ACK/slot timing. Inflating it "for range" mostly adds latency and hurts close clients.','告诉驱动预期的最大链路距离（米），据此调 ACK/时隙时序。把它填大「求覆盖」大多只会增加延迟、伤近处客户端。',{wiki:WW});
+      def('wireless.wifi-device.cell_density','Cell density','小区密度','number','hostapd cell-density preset (0 = off … 3 = very high) adjusting basic rates and retry behaviour for dense deployments.','hostapd 小区密度预设（0 关 … 3 极高），调整密集部署下的基本速率与重传行为。',{wiki:WW});
+      def('wireless.wifi-device.legacy_rates','Legacy rates','旧速率','bool','Allow legacy 802.11b rates on 2.4 GHz. Needed only by ancient clients; allowing them drags the whole cell\u2019s airtime.','在 2.4 GHz 上允许 802.11b 旧速率。只有远古客户端才需要；允许它会拖累整个小区的空口时间。',{wiki:WW});
+      def('wireless.wifi-iface.device','Radio','所属射频','string','Which wifi-device (radio) this network is broadcast from. The radio\u2019s band decides the SSID\u2019s frequency, so "the same SSID on both radios" means two separate wifi-iface sections pointing at different devices.','本网络由哪个 wifi-device（射频）广播。射频的频段决定 SSID 的频率，所以「双频同名 SSID」是两个指向不同 device 的 wifi-iface 段。',{rel:['band','ssid'],wiki:WW});
+      def('wireless.wifi-iface.network','Network','所属网络','string','Logical interface (from the network config) this SSID bridges/clients land on. This single option is what ties Wi-Fi to firewall zones and DHCP pools: SSID on network guest inherits guest\u2019s subnet, dhcp section and firewall zone — change it and the SSID silently moves networks.','本 SSID 的客户端落到哪个逻辑接口（network 配置）。把 Wi-Fi 与防火墙区域、DHCP 池连起来的就是这一个参数：SSID 挂在 network guest 上，就继承 guest 的子网、dhcp 段和防火墙区域——改它，SSID 就悄悄换了网络。',{rel:['interface','network'],wiki:WW});
+      def('wireless.wifi-iface.mode','Mode','模式','enum','Role of this wireless interface: ap (access point), sta (client of another AP), adhoc, mesh (802.11s), monitor. A radio in sta mode that cannot find its uplink can take the whole radio down for channel scanning on some drivers.','本无线接口的角色：ap（接入点）、sta（作为客户端连别的 AP）、adhoc、mesh（802.11s）、monitor。sta 模式找不到上行时，某些驱动会因扫信道把整个射频拖下线。',{opts:['ap','sta','adhoc','mesh','monitor'],rel:['device'],wiki:WW});
+      def('wireless.wifi-iface.ssid','SSID','网络名称','string','The broadcast network name. Changing it disconnects every client until they rejoin; identical SSID + identical security on several APs is what makes roaming work.','广播的网络名。改它会让所有客户端断线重连；多个 AP 用相同 SSID + 相同安全设置，漫游才成立。',{rel:['encryption','key'],wiki:WW});
+      def('wireless.wifi-iface.encryption','Encryption','加密方式','string','Security mode, optionally with a cipher suffix such as psk2+aes or sae-mixed+aes. Documented bases: none (open), wep (broken — compatibility only), psk/psk2/psk-mixed (WPA/WPA2-PSK), sae (WPA3), sae-mixed and psk3 (WPA2/WPA3 transition), owe (open with encryption). The chosen mode dictates whether key must be 8–63 characters (PSK/SAE passphrase) and whether older clients can still join.','安全模式，可带加密套件后缀，如 psk2+aes、sae-mixed+aes。有文档的基值：none（开放）、wep（已破解，仅兼容用）、psk/psk2/psk-mixed（WPA/WPA2-PSK）、sae（WPA3）、sae-mixed 与 psk3（WPA2/WPA3 过渡）、owe（开放但加密）。所选模式决定 key 是否必须是 8–63 字符（PSK/SAE 口令），也决定老客户端还能不能连。',{rel:['key','ssid'],wiki:WW});
+      def('wireless.wifi-iface.key','Key / passphrase','密钥/口令','string','WPA passphrase (8–63 characters) or a 64-hex-digit raw PSK for psk/sae family modes; for WEP it is the WEP key. Stored in clear text in /etc/config/wireless — treat config exports as secrets. A passphrase shorter than 8 characters makes hostapd refuse to start the AP at all, which shows up as "radio up, no SSID".','WPA 口令（8–63 字符）或 64 位十六进制原始 PSK（psk/sae 系列）；WEP 时是 WEP 密钥。以明文存在 /etc/config/wireless 里——导出文件按秘密保管。口令短于 8 字符时 hostapd 会拒绝启动该 AP，表现为「射频在线、SSID 不出现」。',{rel:['encryption'],wiki:WW});
+      def('wireless.wifi-iface.disabled','Interface disabled','接口禁用','bool','Disable just this wifi-iface (SSID), leaving the radio and its other SSIDs up.','只禁用这一个 wifi-iface（SSID），射频和它的其他 SSID 不受影响。',{def:'0',rel:['device'],wiki:WW});
+      def('wireless.wifi-iface.isolate','Client isolation','客户端隔离','bool','AP isolation: clients of this SSID cannot talk to each other, only onward to the router/internet. Standard hardening for guest SSIDs; pointless-to-harmful on a trusted LAN SSID where casting/printer discovery must work.','AP 隔离：本 SSID 的客户端之间不能互通，只能去往路由器/互联网。访客 SSID 的标准加固；放在需要投屏/打印机发现的可信 LAN SSID 上则有害无益。',{def:'0',rel:['network'],wiki:WW});
+      def('wireless.wifi-iface.hidden','Hidden SSID','隐藏 SSID','bool','Suppress SSID broadcast (clients must know the name to join). Not a security feature — the name still leaks in probe/association frames — and it breaks some IoT clients.','不在广播中带 SSID（客户端必须知道名字才能连）。这不是安全功能——名字仍会从探测/关联帧里漏出——而且会坑一部分 IoT 客户端。',{def:'0',wiki:WW});
+      def('wireless.wifi-iface.macfilter','MAC filter','MAC 过滤','enum','Client filtering by MAC: disable, allow (only listed maclist may join), deny (listed are blocked). MACs are trivially spoofable — this is an organisational tool, not a security boundary.','按 MAC 过滤客户端：disable、allow（只有 maclist 里能连）、deny（列表里禁止）。MAC 极易伪造——这是管理工具，不是安全边界。',{opts:['disable','allow','deny'],rel:['maclist'],wiki:WW});
+      def('wireless.wifi-iface.maclist','MAC list','MAC 列表','mac','MAC addresses the macfilter option applies to (list).','macfilter 作用的 MAC 地址列表。',{rel:['macfilter'],wiki:WW});
+      def('wireless.wifi-iface.wps_pushbutton','WPS push button','WPS 按钮','bool','Enable WPS push-button pairing. Convenient and historically attack-prone (PIN mode especially); most hardening guides turn it off.','启用 WPS 按键配对。方便，但历史上攻击面大（尤其 PIN 模式）；多数加固指南都关它。',{def:'0',wiki:WW});
+      def('wireless.wifi-iface.ieee80211r','802.11r fast roaming','802.11r 快速漫游','bool','Fast BSS transition for roaming between APs sharing this SSID/security. Needs the same mobility_domain on all participating APs and can break very old clients.','在共享同一 SSID/安全设置的多个 AP 间做快速 BSS 切换漫游。所有参与 AP 的 mobility_domain 必须相同，且可能坑极老的客户端。',{def:'0',rel:['mobility_domain','ft_over_ds'],wiki:WW});
+      def('wireless.wifi-iface.mobility_domain','Mobility domain','移动域','string','4-hex-digit identifier grouping APs into one 802.11r roaming domain. APs with different values will not fast-roam with each other.','4 位十六进制标识，把多个 AP 划进同一个 802.11r 漫游域。值不同的 AP 之间不会快速漫游。',{rel:['ieee80211r'],wiki:WW});
+      def('wireless.wifi-iface.ft_over_ds','FT over DS','FT 经 DS','enum','802.11r: run fast-transition over the distribution system (1) instead of over the air (0).','802.11r：快速切换走分发系统（1）而不是空口（0）。',{opts:['0','1'],rel:['ieee80211r'],wiki:WW});
+      def('wireless.wifi-iface.bss_transition','802.11v BSS transition','802.11v 漫游引导','bool','Let the AP suggest clients move to a better AP (802.11v). Helps sticky clients in multi-AP homes when combined with 802.11k/r.','允许 AP 建议客户端换到更好的 AP（802.11v）。多 AP 家庭里配合 802.11k/r 能治「粘着不走」的客户端。',{def:'0',rel:['ieee80211r'],wiki:WW});
+      /* ---- firewall ---- */
+      const FW='firewall';
+      def('firewall.defaults.input','Default input policy','默认入站策略','enum','Fallback policy for traffic to the router itself that matches no zone. Zones normally override this for their own interfaces; traffic on interfaces in no zone at all lands here.','到达路由器本身、且不匹配任何区域的流量的兜底策略。各区域通常用自己的设置覆盖它；不属于任何区域的接口流量会落到这里。',{opts:['ACCEPT','REJECT','DROP'],rel:['forward','output'],wiki:FW});
+      def('firewall.defaults.output','Default output policy','默认出站策略','enum','Fallback policy for traffic originating from the router that matches no zone. Stock is ACCEPT.','由路由器发出、且不匹配任何区域的流量的兜底策略。出厂为 ACCEPT。',{opts:['ACCEPT','REJECT','DROP'],rel:['input','forward'],wiki:FW});
+      def('firewall.defaults.forward','Default forward policy','默认转发策略','enum','Fallback policy for routed (through) traffic matching no zone/forwarding. Stock config ships REJECT; inter-zone traffic is meant to be opened by explicit forwarding sections, not here.','被路由（穿过）的流量不匹配任何区域/转发时的兜底策略。官方默认配置为 REJECT；区域间流量应由显式的 forwarding 段放行，而不是靠这里。',{opts:['ACCEPT','REJECT','DROP'],def:'REJECT (stock config)',rel:['src','dest'],wiki:FW});
+      def('firewall.defaults.syn_flood','SYN flood protection (legacy)','SYN 洪泛防护（旧名）','bool','Rate-limit new TCP connections against SYN floods (firewall3-era option name; firewall4 calls it synflood_protect). Stock ships 1.','限制新建 TCP 连接速率以防 SYN 洪泛（firewall3 时代的参数名；firewall4 叫 synflood_protect）。官方默认配置为 1。',{def:'1 (stock config)',rel:['synflood_protect'],wiki:FW});
+      def('firewall.defaults.synflood_protect','SYN flood protection','SYN 洪泛防护','bool','firewall4 name for SYN-flood rate limiting (successor of syn_flood).','firewall4 里 SYN 洪泛限速的名字（syn_flood 的后继）。',{rel:['syn_flood'],wiki:FW});
+      def('firewall.defaults.drop_invalid','Drop invalid packets','丢弃无效包','bool','Drop packets in conntrack state INVALID instead of letting later rules see them. Stock ships 1 on current builds; harmless hardening in almost every setup.','丢弃 conntrack 状态为 INVALID 的包，不让后续规则处理。当前固件出厂为 1；几乎所有场景下都是无害加固。',{def:'1',wiki:FW});
+      def('firewall.defaults.flow_offloading','Software flow offloading','软件流卸载','bool','Fast-path established flows in software (flowtable), bypassing parts of the normal packet path. Speeds up NAT throughput on CPU-bound routers; can interact badly with SQM/QoS (shaped traffic must not take the fast path) and with some accounting.','在软件里给已建立的流走快速路径（flowtable），绕过部分正常包路径。能提高 CPU 受限路由器的 NAT 吞吐；但与 SQM/QoS 天生冲突（被整形的流量不能走快速路径），也会影响部分流量统计。',{def:'0',rel:['flow_offloading_hw'],wiki:FW});
+      def('firewall.defaults.flow_offloading_hw','Hardware flow offloading','硬件流卸载','bool','Push the flowtable fast path into hardware (switch/NSS/MediaTek offload engines) where the target supports it. Same SQM caveat as software offloading, stronger.','把 flowtable 快速路径下放到硬件（交换/NSS/联发科卸载引擎），需平台支持。与 SQM 的冲突同软件卸载，且更强。',{def:'0',rel:['flow_offloading'],wiki:FW});
+      def('firewall.defaults.fullcone','Full-cone NAT','全锥形 NAT','bool','Enable full-cone NAT behaviour (endpoint-independent mapping/filtering) where supported by the firewall build — a fork/build-dependent option some firmwares ship for game/P2P NAT types. Not part of upstream firewall4 defaults; if your build ignores it, NAT type stays symmetric/port-restricted.','在防火墙构建支持时启用全锥形 NAT（端点无关映射/过滤）——这是依赖分支/构建的选项，部分固件为游戏/P2P 的 NAT 类型而带。upstream firewall4 默认配置里没有它；构建不支持时会被忽略，NAT 类型保持不变。',{wiki:FW});
+      def('firewall.zone.name','Zone name','区域名','string','Name other sections reference: forwarding src/dest, rule src/dest, and redirects all point at zones by this name. Renaming a zone without updating references silently orphans those rules.','其他段引用的名字：forwarding 的 src/dest、rule 的 src/dest、redirect 都按这个名字指区域。改区域名而不改引用，那些规则会无声失效。',{rel:['network','src','dest'],wiki:FW});
+      def('firewall.zone.network','Networks in zone','区域内网络','string','Logical interfaces belonging to this zone (list). An interface in no zone falls back to the defaults policies — the usual explanation for a new guest/VPN interface being unexpectedly open or unexpectedly dead.','属于本区域的逻辑接口（列表）。不在任何区域的接口会落到 defaults 兜底策略——新建的访客/VPN 接口「意外全开」或「意外全断」通常就是这个原因。',{rel:['name','input'],wiki:FW});
+      def('firewall.zone.input','Zone input policy','区域入站策略','enum','Default verdict for traffic from this zone addressed to the router itself (LuCI, SSH, DNS…). Stock wan zone: REJECT. Setting the WAN zone input to ACCEPT exposes every router service listening on the WAN — the single most dangerous value in this file.','来自本区域、目标是路由器本身的流量的默认裁决（LuCI、SSH、DNS…）。出厂 wan 区域为 REJECT。把 WAN 区域入站设成 ACCEPT，等于把所有监听在 WAN 上的路由器服务全部暴露——是本文件里最危险的一个值。',{opts:['ACCEPT','REJECT','DROP'],rel:['network','forward'],wiki:FW});
+      def('firewall.zone.output','Zone output policy','区域出站策略','enum','Default verdict for traffic from the router into this zone. Stock zones use ACCEPT.','路由器发往本区域的流量的默认裁决。出厂区域均为 ACCEPT。',{opts:['ACCEPT','REJECT','DROP'],wiki:FW});
+      def('firewall.zone.forward','Zone forward policy','区域内转发策略','enum','Default verdict for traffic forwarded between interfaces of the same zone (intra-zone). Inter-zone traffic is governed by forwarding sections instead.','同一区域内不同接口之间转发的默认裁决。跨区域流量由 forwarding 段管，不看这里。',{opts:['ACCEPT','REJECT','DROP'],rel:['src','dest'],wiki:FW});
+      def('firewall.zone.masq','Masquerading (NAT)','地址伪装（NAT）','bool','Source-NAT outgoing traffic to the zone\u2019s interface address. Without masq on the wan zone, LAN packets leave with private source addresses and the internet cannot answer — "everything resolves, nothing loads". Stock wan zone: 1.','把出区域的流量源地址 NAT 成区域接口的地址。wan 区域不开 masq，LAN 包带着私有源地址出去，互联网无法回包——「什么都解析得到、什么都打不开」。出厂 wan 区域为 1。',{def:'1 on stock wan zone',rel:['name','network'],wiki:FW});
+      def('firewall.zone.masq6','Masquerading IPv6','IPv6 地址伪装','bool','NAT66 for traffic leaving via this zone. Normally unnecessary with proper prefix delegation — its presence often papers over a broken PD setup (see ip6assign/reqprefix) at the cost of breaking end-to-end IPv6 semantics.','对经本区域出去的流量做 NAT66。有正常前缀委派时一般不需要——它出现时往往是在掩盖坏掉的 PD 配置（见 ip6assign/reqprefix），代价是破坏 IPv6 端到端语义。',{def:'0',rel:['ip6assign','reqprefix'],wiki:FW});
+      def('firewall.zone.mtu_fix','MTU fix (MSS clamp)','MTU 修正（MSS 钳制）','bool','Clamp TCP MSS on forwarded traffic through this zone to the path MTU. Stock wan zone: 1 — it is what keeps PPPoE links (MTU 1492) from black-holing large TLS handshakes even when interface MTUs are imperfect.','把经本区域转发的 TCP MSS 钳制到路径 MTU。出厂 wan 区域为 1——接口 MTU 不完美时，靠它避免 PPPoE 链路（MTU 1492）黑洞掉大的 TLS 握手。',{def:'1 on stock wan zone',rel:['mtu'],wiki:FW});
+      def('firewall.zone.family','Address family','地址族','enum','Restrict this zone to ipv4, ipv6, or any (both). A guest zone accidentally limited to ipv4 leaves its IPv6 traffic to the defaults policies.','把本区域限制为 ipv4、ipv6 或 any（两者）。访客区域误限 ipv4 时，它的 IPv6 流量会落到 defaults 兜底策略上。',{opts:['ipv4','ipv6','any'],wiki:FW});
+      def('firewall.zone.log','Zone logging','区域日志','bool','Log traffic dropped/rejected by this zone\u2019s policies (rate-limited). Turn on temporarily when debugging "why is this blocked", off afterwards to spare the log buffer.','记录被本区域策略丢弃/拒绝的流量（带限速）。排查「为什么被拦」时临时开，之后关掉以免刷爆日志缓冲。',{def:'0',wiki:FW});
+      def('firewall.forwarding.src','Source zone','源区域','string','Zone traffic comes from in this forwarding. Together with dest it is the inter-zone gate: the stock lan → wan forwarding is what lets the LAN reach the internet at all (subject to the zones\u2019 own policies and masq).','本转发中流量的来源区域。与 dest 一起构成跨区域闸门：出厂的 lan → wan 转发就是内网能上网的原因（还要受区域自身策略和 masq 影响）。',{rel:['dest','masq'],wiki:FW});
+      def('firewall.forwarding.dest','Destination zone','目标区域','string','Zone traffic is allowed to flow to. A forwarding only opens the gate between the two named zones; rules can still narrow it per service/IP.','允许流量流向的区域。forwarding 只打开两个命名区域之间的闸门；具体服务/IP 仍可由 rule 细化。',{rel:['src'],wiki:FW});
+      def('firewall.rule.name','Rule name','规则名','string','Human-readable label for this rule (also used in LuCI). Duplicate or stale names are a common source of "I edited the wrong rule" confusion — fw4 matches rules top-down by content, not by name.','本规则的人类可读标签（LuCI 里也显示）。重名或过期名字是「改错了规则」的常见来源——fw4 按内容自上而下匹配，不按名字。',{wiki:FW});
+      def('firewall.rule.src','Source zone','源区域','string','Zone the traffic originates from (or * for any). Combined with src_ip/src_port for finer matching.','流量来源区域（* 表示任意）。与 src_ip/src_port 组合细化匹配。',{rel:['dest','src_ip'],wiki:FW});
+      def('firewall.rule.dest','Destination zone','目标区域','string','Zone the traffic is headed to. Omit dest for rules about traffic to the router itself (those match on src + dest_ip/dest_port instead).','流量目标区域。针对「到路由器本身」的规则不要填 dest（那种规则靠 src + dest_ip/dest_port 匹配）。',{rel:['src','dest_port'],wiki:FW});
+      def('firewall.rule.proto','Protocol','协议','string','IP protocol(s) matched: tcp, udp, icmp, icmpv6, or all (list allowed). Port options only make sense with tcp/udp.','匹配的 IP 协议：tcp、udp、icmp、icmpv6 或 all（可列表）。端口类参数只对 tcp/udp 有意义。',{rel:['dest_port','src_port'],wiki:FW});
+      def('firewall.rule.src_ip','Source IP','源 IP','string','Source address/subnet the rule matches (can be a list). Negation with ! is supported by fw4.','规则匹配的源地址/子网（可列表）。fw4 支持 ! 取反。',{rel:['src','dest_ip'],wiki:FW});
+      def('firewall.rule.dest_ip','Destination IP','目标 IP','string','Destination address/subnet the rule matches (can be a list). For traffic to the router itself this is how you pin a rule to one of its addresses.','规则匹配的目标地址/子网（可列表）。对「到路由器本身」的流量，用它把规则钉到路由器的某个地址上。',{rel:['dest','dest_port'],wiki:FW});
+      def('firewall.rule.src_port','Source port','源端口','string','Source port or range matched (tcp/udp only). Client source ports are ephemeral — rules pinned to them rarely do what the author intended.','匹配的源端口或范围（仅 tcp/udp）。客户端源端口是临时的——把规则钉在源端口上多半达不到作者想要的效果。',{rel:['dest_port','proto'],wiki:FW});
+      def('firewall.rule.dest_port','Destination port','目标端口','string','Destination port or range matched (tcp/udp only), e.g. 53, 80, 8000-9000.','匹配的目标端口或范围（仅 tcp/udp），如 53、80、8000-9000。',{rel:['proto','target'],wiki:FW});
+      def('firewall.rule.target','Target','动作','enum','Verdict when the rule matches: ACCEPT lets it through, REJECT refuses with an error reply, DROP silently discards. Rules are evaluated in file order within their chain — a broad ACCEPT above shadows narrower DROPs below.','规则命中时的裁决：ACCEPT 放行，REJECT 回错误拒绝，DROP 静默丢弃。规则在链内按文件顺序评估——上面一条宽泛的 ACCEPT 会盖住下面更细的 DROP。',{opts:['ACCEPT','REJECT','DROP'],rel:['src','dest'],wiki:FW});
+      def('firewall.rule.family','Address family','地址族','enum','Restrict the rule to ipv4 or ipv6 (any = both). A DNS-blocking rule written for ipv4 only is silently bypassed over IPv6 — check this field first on "the block doesn\u2019t work" reports.','把规则限制为 ipv4 或 ipv6（any 两者）。只写了 ipv4 的 DNS 封锁规则会被 IPv6 静默绕过——「封锁不生效」先查这个字段。',{opts:['ipv4','ipv6','any'],wiki:FW});
+      def('firewall.rule.enabled','Rule enabled','规则启用','bool','Disabled rules are skipped by fw4 entirely (they stay in the file for reference). A "missing" open port is often a correct rule sitting here with enabled 0.','fw4 会整条跳过禁用的规则（留在文件里作参考）。「端口没开」常常是规则没错、只是这里是 0。',{def:'1',wiki:FW});
+      def('firewall.rule.log','Rule logging','规则日志','bool','Log packets hitting this rule before the verdict is applied.','在本规则裁决前记录命中的包。',{def:'0',wiki:FW});
+      def('firewall.redirect.name','Redirect name','转发名','string','Label for this port-forward (DNAT) rule.','本端口转发（DNAT）规则的标签。',{rel:['src_dport','dest_ip'],wiki:FW});
+      def('firewall.redirect.src','Source zone','源区域','string','Zone the forwarded connection arrives from — for classic port forwards this is wan.','被转发的连接来自哪个区域——经典端口转发里是 wan。',{rel:['src_dport'],wiki:FW});
+      def('firewall.redirect.dest','Destination zone','目标区域','string','Zone the internal server lives in — for classic port forwards, lan. Reflection/hairpin behaviour depends on this pairing.','内网服务器所在区域——经典端口转发里是 lan。回流（hairpin）行为取决于这个配对。',{rel:['dest_ip','reflection'],wiki:FW});
+      def('firewall.redirect.proto','Protocol','协议','string','Protocol(s) forwarded: tcp, udp, or both (list). Games/voice often need udp as well as tcp — forwarding only tcp is a classic half-working port forward.','被转发的协议：tcp、udp 或两者（列表）。游戏/语音常需 udp+tcp——只转 tcp 是经典的「半通」端口转发。',{rel:['src_dport'],wiki:FW});
+      def('firewall.redirect.src_dport','External port','外部端口','string','Port on the router\u2019s WAN address that incoming connections hit. If the ISP does CGNAT, no value here will ever see traffic.','连接打到路由器 WAN 地址上的端口。若运营商用了 CGNAT，这里填什么都不会有流量进来。',{rel:['dest_port','dest_ip'],wiki:FW});
+      def('firewall.redirect.dest_ip','Internal IP','内网 IP','ip4','LAN address of the server receiving the forwarded traffic. Give that server a static lease (dhcp host) or the forward rots the day its DHCP address changes.','接收转发流量的服务器内网地址。给该服务器做静态租约（dhcp host），否则它 DHCP 地址一变，转发就烂掉。',{rel:['dest_port','mac'],wiki:FW});
+      def('firewall.redirect.dest_port','Internal port','内网端口','string','Port on the internal server; may differ from src_dport (e.g. WAN 8443 → LAN 443).','内网服务器上的端口；可与 src_dport 不同（如 WAN 8443 → LAN 443）。',{rel:['src_dport','dest_ip'],wiki:FW});
+      def('firewall.redirect.target','Target','动作','enum','DNAT for port forwarding (destination NAT), SNAT for source rewriting. Ordinary port forwards are DNAT.','DNAT 是端口转发（目标 NAT），SNAT 是源地址改写。普通端口转发用 DNAT。',{opts:['DNAT','SNAT'],wiki:FW});
+      def('firewall.redirect.reflection','NAT reflection','NAT 回流','bool','Let LAN clients reach the forwarded service via the router\u2019s public address/name (hairpin NAT). Without it, a service that works from outside times out from inside — split-DNS is the alternative fix.','允许内网客户端用路由器的公网地址/域名访问被转发的服务（发夹 NAT）。不开时会出现「外网能访问、内网超时」；另一种解法是分流 DNS。',{def:'1',rel:['dest_ip','src_dport'],wiki:FW});
+      def('firewall.redirect.enabled','Redirect enabled','转发启用','bool','Disabled redirects are skipped by fw4.','fw4 会跳过禁用的转发。',{def:'1',wiki:FW});
+      def('firewall.include.path','Include path','包含路径','string','Path to a custom nftables/rules snippet this section pulls into the generated ruleset. Its contents are outside UCI\u2019s model — this tool shows the reference, not the snippet itself.','本段拉进生成规则集的自定义 nftables/规则片段路径。片段内容在 UCI 模型之外——本工具只显示引用，不显示片段本身。',{wiki:FW});
+      /* ---- system / dropbear / uhttpd / luci / services ---- */
+      def('system.system.hostname','Hostname','主机名','string','This router\u2019s name: shown in LuCI, the shell prompt, DHCP client lists and mDNS. Changing it does not affect addressing, but scripts that find the router by name need updating.','本路由器的名字：出现在 LuCI、Shell 提示符、DHCP 客户端列表和 mDNS 里。改它不影响地址，但靠名字找路由器的脚本要跟着改。',{wiki:'network'});
+      def('system.system.zonename','Time zone name','时区名','string','Human-readable zone name (e.g. Asia/Shanghai). LuCI writes both zonename and the POSIX timezone string derived from it; the actual clock behaviour follows timezone, so the two must agree — a mismatch shows up as logs/schedules offset by hours while the LuCI clock looks right.','人类可读的时区名（如 Asia/Shanghai）。LuCI 会同时写 zonename 和由它推导的 POSIX timezone 串；真正决定时钟行为的是 timezone，两者必须一致——不一致时会出现 LuCI 时钟看着对、日志和定时任务却差几小时。',{rel:['timezone'],wiki:'network'});
+      def('system.system.timezone','Time zone (POSIX)','时区（POSIX 串）','string','POSIX TZ string the C library actually uses, e.g. CST-8 for China (note the inverted sign convention: -8 means UTC+8). Derived from zonename by LuCI; hand-editing one without the other is the classic source of "wrong time in logs".','C 库真正使用的 POSIX TZ 串，如中国是 CST-8（注意符号反转：-8 表示 UTC+8）。由 LuCI 按 zonename 推导；只改其一是「日志时间不对」的经典来源。',{rel:['zonename'],wiki:'network'});
+      def('system.system.ttylogin','Console login','串口登录','bool','Require a login on the serial/TTL console. Off means anyone with physical UART access gets a root shell.','串口/TTL 控制台是否要求登录。关掉意味着任何能接触 UART 的人直接拿到 root shell。',{def:'0',wiki:'network'});
+      def('system.system.conloglevel','Console log level','控制台日志级别','number','Kernel messages at or above this level go to the serial console (1 = emergencies only … 8 = everything/debug conventions of klog).','不低于该级别的内核消息输出到串口控制台（1 只紧急 … 8 全部/调试，按 klog 约定）。',{wiki:'network'});
+      def('system.system.cronloglevel','Cron log level','Cron 日志级别','number','Verbosity of cron messages in the system log (lower = more messages logged).','cron 消息进系统日志的详细程度（数值越小记得越多）。',{wiki:'network'});
+      def('system.system.log_size','Log buffer size','日志缓冲大小','number','Size in KiB of the in-memory circular system log read by logread. Bigger buffers survive longer on chatty systems; the log lives in RAM, so it still vanishes at reboot.','logread 读取的内存环形系统日志大小（KiB）。日志多的系统上大缓冲能留更久；但日志在 RAM 里，重启仍会清空。',{rel:['log_ip'],wiki:'network'});
+      def('system.system.log_ip','Remote log server','远程日志服务器','ip4','Send the system log to this syslog server (UDP, with log_port). The usual way to keep logs across reboots/crashes.','把系统日志发往该 syslog 服务器（UDP，配合 log_port）。是跨重启/崩溃保留日志的常规办法。',{rel:['log_port','log_size'],wiki:'network'});
+      def('system.system.log_port','Remote log port','远程日志端口','number','UDP port of the remote syslog server set in log_ip (514 is the syslog standard).','log_ip 所设远程 syslog 服务器的 UDP 端口（514 是 syslog 标准端口）。',{rel:['log_ip'],wiki:'network'});
+      def('system.system.log_file','Log file','日志文件','string','Also write the system log to this file path (persistent storage). Logging to internal flash wears it — prefer tmpfs paths or remote logging on flash-based routers.','同时把系统日志写到该文件路径（持久存储）。写内部 flash 会磨损它——flash 路由器上优先用 tmpfs 路径或远程日志。',{rel:['log_ip'],wiki:'network'});
+      def('system.timeserver.server','NTP servers','NTP 服务器','string','Time servers the router syncs from (list). Stock builds ship the *.openwrt.pool.ntp.org pool. Wrong time breaks TLS validation, log correlation and schedule-based rules, so this quiet list matters.','路由器同步时间的服务器（列表）。出厂固件带 *.openwrt.pool.ntp.org 池。时间不对会连带 TLS 校验、日志对齐和按时间触发的规则一起坏，所以这个不起眼的列表很重要。',{rel:['enabled'],wiki:'network'});
+      def('system.timeserver.enabled','NTP client enabled','启用 NTP 客户端','bool','Run the NTP client (sysntpd) to keep the router clock synced.','运行 NTP 客户端（sysntpd）保持路由器时钟同步。',{def:'1',rel:['server'],wiki:'network'});
+      def('system.timeserver.enable_server','NTP server enabled','启用 NTP 服务器','bool','Also serve time to the LAN (sysntpd as server). Useful when clients cannot reach the internet directly; point their NTP/DHCP option 42 here.','同时给内网提供时间服务（sysntpd 作服务器）。客户端不能直达互联网时有用；把它们的 NTP/DHCP 选项 42 指到这里。',{def:'0',rel:['server'],wiki:'network'});
+      def('system.led.name','LED name','LED 名称','string','Label of this LED mapping entry.','本 LED 映射条目的标签。',{rel:['sysfs','trigger'],wiki:'network'});
+      def('system.led.sysfs','LED device','LED 设备','string','Kernel LED name under /sys/class/leds that this entry drives.','本条目驱动的 /sys/class/leds 下的内核 LED 名。',{rel:['trigger'],wiki:'network'});
+      def('system.led.trigger','LED trigger','LED 触发器','string','Kernel trigger deciding LED behaviour: netdev (link/activity of a device), timer, heartbeat, none, default-on, or a switch/phy trigger. netdev triggers pair with a device/mode setting on some builds.','决定 LED 行为的内核触发器：netdev（某设备的链路/活动）、timer、heartbeat、none、default-on，或交换/phy 触发器。某些构建上 netdev 触发器还要配设备/模式。',{rel:['sysfs'],wiki:'network'});
+      def('system.led.default','LED default state','LED 默认状态','bool','State of the LED when no trigger drives it (1 = on).','没有触发器驱动时 LED 的状态（1 = 亮）。',{rel:['trigger'],wiki:'network'});
+      const DB='dropbear';
+      def('dropbear.dropbear.Port','SSH port','SSH 端口','number','Port the Dropbear SSH server listens on. Stock config: 22. Moving it reduces log noise from internet scans but is not access control — key auth is (see PasswordAuth).','Dropbear SSH 服务器监听的端口。官方默认配置：22。换端口能减少互联网扫描带来的日志噪音，但不是访问控制——真正的控制是密钥认证（见 PasswordAuth）。',{def:'22 (stock config)',rel:['PasswordAuth','Interface'],wiki:DB});
+      def('dropbear.dropbear.PasswordAuth','Password authentication','密码认证','bool','Allow SSH logins with passwords (stock config: on). With it on, SSH security is exactly your root password\u2019s strength — the setting hardening guides turn off once keys are installed in /etc/dropbear/authorized_keys. Values in the stock file are written on/off.','允许用密码登录 SSH（官方默认配置：on）。开着时，SSH 的安全性就等于 root 密码的强度——密钥装好（/etc/dropbear/authorized_keys）后，加固指南都会关它。默认文件里该值写成 on/off。',{def:'on (stock config)',rel:['RootPasswordAuth','Port'],wiki:DB});
+      def('dropbear.dropbear.RootPasswordAuth','Root password login','root 密码登录','bool','Allow password login for root specifically (stock config: on). RootPasswordAuth off + PasswordAuth on still lets non-root users in with passwords while forcing keys for root — rarely useful on single-user OpenWrt, where root is usually the only account.','专门控制 root 能否用密码登录（官方默认配置：on）。RootPasswordAuth 关、PasswordAuth 开时，普通用户还能密码登录、root 必须用密钥——在通常只有 root 一个账号的 OpenWrt 上很少用得上。',{def:'on (stock config)',rel:['PasswordAuth'],wiki:DB});
+      def('dropbear.dropbear.RootLogin','Root login','root 登录','bool','Allow root SSH login at all, including by key. Turning it off on a router where root is the only user locks SSH management out entirely.','是否允许 root 通过 SSH 登录（包括密钥方式）。在只有 root 用户的路由器上关掉它，等于把 SSH 管理通道彻底锁死。',{rel:['RootPasswordAuth'],wiki:DB});
+      def('dropbear.dropbear.Interface','Listen interface','监听接口','string','Bind Dropbear to one logical interface only (e.g. lan). Unset = all interfaces, meaning SSH reachability is then governed purely by the firewall zone input policies — fine while wan input stays REJECT, dangerous in combination with an open wan zone.','把 Dropbear 只绑到一个逻辑接口（如 lan）。不设 = 所有接口，此时 SSH 可达性完全由防火墙各区域的入站策略决定——wan 入站保持 REJECT 时没问题，与开放的 wan 区域组合则很危险。',{rel:['Port','input'],wiki:DB});
+      def('dropbear.dropbear.GatewayPorts','Gateway ports','网关端口','bool','Allow forwarded ports (-R/-L tunnels) to bind on all interfaces instead of loopback only. Needed for some tunnel setups; widens exposure of anything forwarded.','允许转发端口（-R/-L 隧道）绑到所有接口而非仅回环。某些隧道场景需要；会放大一切被转发端口的暴露面。',{def:'0',wiki:DB});
+      def('dropbear.dropbear.BannerFile','Banner file','横幅文件','string','File whose contents are shown before SSH login (stock config mentions /etc/banner as a commented example).','登录前显示的文件内容（默认配置里以注释形式给了 /etc/banner 的例子）。',{wiki:DB});
+      def('dropbear.dropbear.enable','Service enabled','服务启用','bool','Master switch of this Dropbear instance in the stock config (enable 1).','官方默认配置里本 Dropbear 实例的总开关（enable 1）。',{def:'1 (stock config)',wiki:DB});
+      def('dropbear.dropbear.LocalPortForward','Local forwarding','本地转发','bool','Allow SSH local (-L) port forwarding through this server (stock file lists it as a commented option).','允许经本服务器做 SSH 本地（-L）端口转发（默认文件里是注释掉的选项）。',{wiki:DB});
+      def('dropbear.dropbear.RemotePortForward','Remote forwarding','远程转发','bool','Allow SSH remote (-R) port forwarding — i.e. clients exposing ports back through the router (stock file lists it as a commented option).','允许 SSH 远程（-R）端口转发——即客户端借路由器把端口反向暴露出去（默认文件里是注释掉的选项）。',{wiki:DB});
+      def('uhttpd.main.listen_http','HTTP listeners','HTTP 监听','string','Address:port pairs the web server listens on for HTTP (list), e.g. 0.0.0.0:80 and [::]:80. Binding is only half the story: whether the WAN can actually reach it is decided by the wan zone input policy and rules.','Web 服务器监听 HTTP 的 地址:端口 列表，如 0.0.0.0:80 和 [::]:80。绑定只是一半：WAN 到底能不能摸到它，由 wan 区域入站策略和规则决定。',{rel:['listen_https','redirect_https','input'],wiki:'network'});
+      def('uhttpd.main.listen_https','HTTPS listeners','HTTPS 监听','string','Address:port pairs for HTTPS (list). Requires cert/key below; LuCI\u2019s HTTPS lives here.','监听 HTTPS 的 地址:端口 列表。需要下面的 cert/key；LuCI 的 HTTPS 就在这里。',{rel:['listen_http','cert','key'],wiki:'network'});
+      def('uhttpd.main.redirect_https','Redirect HTTP to HTTPS','HTTP 跳转 HTTPS','bool','Answer HTTP requests with a redirect to the HTTPS listener instead of serving the UI in clear text.','HTTP 请求一律重定向到 HTTPS 监听，而不是明文提供管理界面。',{rel:['listen_http','listen_https'],wiki:'network'});
+      def('uhttpd.main.cert','TLS certificate','TLS 证书','string','Path of the HTTPS certificate (stock generation puts it at /etc/uhttpd.crt).','HTTPS 证书路径（出厂生成在 /etc/uhttpd.crt）。',{rel:['key','listen_https'],wiki:'network'});
+      def('uhttpd.main.key','TLS key','TLS 私钥','string','Path of the HTTPS private key (stock: /etc/uhttpd.key). A private key — never share config backups containing the real file.','HTTPS 私钥路径（出厂：/etc/uhttpd.key）。这是私钥——含真实文件的配置备份绝不能外传。',{rel:['cert'],wiki:'network'});
+      def('uhttpd.main.home','Document root','文档根目录','string','Web root served by uhttpd (stock: /www, which is where LuCI lives).','uhttpd 对外提供的 Web 根目录（出厂：/www，LuCI 就住在这里）。',{wiki:'network'});
+      def('uhttpd.main.max_requests','Max requests','最大请求数','number','Maximum concurrent requests a single uhttpd worker handles before respawning.','单个 uhttpd 工作进程重生前处理的最大并发请求数。',{wiki:'network'});
+      def('uhttpd.main.script_timeout','Script timeout','脚本超时','number','Seconds a CGI/Lua script (e.g. a slow LuCI page) may run before uhttpd kills it.','CGI/Lua 脚本（如慢的 LuCI 页面）被 uhttpd 杀掉前可运行的秒数。',{wiki:'network'});
+      def('luci.main.lang','Language','语言','enum','LuCI interface language: auto follows the browser; explicit codes like en / zh_Hans pin it.','LuCI 界面语言：auto 跟随浏览器；en / zh_Hans 这类代码则钉死。',{opts:['auto','en','zh_Hans','zh_Hant'],wiki:'network'});
+      def('luci.main.mediaurlbase','Theme path','主题路径','string','URL path of the active LuCI theme\u2019s static assets (e.g. /luci-static/argon). If this points at a theme that is not installed, LuCI renders unstyled — a classic post-sysupgrade surprise.','当前 LuCI 主题静态资源的 URL 路径（如 /luci-static/argon）。若指向未安装的主题，LuCI 会无样式渲染——刷机后常见的惊吓来源。',{wiki:'network'});
+      def('luci.main.resourcebase','Resource path','资源路径','string','URL path for LuCI\u2019s shared static resources (scripts/styles of the framework itself, as opposed to the theme).','LuCI 框架自身共享静态资源（脚本/样式）的 URL 路径，与主题路径是两回事。',{wiki:'network'});
+      def('upnpd.upnpd.enabled','UPnP enabled','启用 UPnP','bool','Master switch for the miniupnpd service as exposed by LuCI: when on, LAN programs may open inbound ports on the WAN by themselves. Convenient for game consoles; from a security standpoint it delegates firewall decisions to every LAN device and app.','LuCI 暴露的 miniupnpd 服务总开关：开启后，内网程序可以自己在 WAN 上打开入站端口。对游戏机方便；从安全角度看，等于把防火墙决策权下放给每一个内网设备和应用。',{rel:['secure_mode','download','upload'],wiki:'firewall'});
+      def('upnpd.upnpd.enable_upnp','Enable UPnP','启用 UPnP 协议','bool','Enable the UPnP IGD protocol in miniupnpd\u2019s own config (stock template default on).','启用 miniupnpd 自身配置里的 UPnP IGD 协议（官方模板默认开）。',{rel:['enable_natpmp'],wiki:'firewall'});
+      def('upnpd.upnpd.enable_natpmp','Enable NAT-PMP','启用 NAT-PMP','bool','Enable the NAT-PMP protocol (Apple-style port mapping) alongside UPnP.','同时启用 NAT-PMP 协议（苹果系的端口映射）。',{rel:['enable_upnp'],wiki:'firewall'});
+      def('upnpd.upnpd.secure_mode','Secure mode','安全模式','bool','Only allow a client to redirect ports to its own address (stock template: on). Turning it off lets any LAN device open ports to any other LAN device — the setting that makes UPnP genuinely dangerous.','只允许客户端把端口重定向到它自己的地址（官方模板：开）。关掉它，任何内网设备都能给任何其他内网设备开端口——这才是让 UPnP 真正危险的设置。',{def:'1 (stock template)',rel:['enabled'],wiki:'firewall'});
+      def('upnpd.upnpd.download','Download cap','下载上限','number','Advertised/capped downstream bandwidth in kbit/s that UPnP clients see in the IGD byte counters and use to pace themselves.','UPnP 客户端在 IGD 字节计数里看到的下行带宽（kbit/s），客户端据此自我限速。',{rel:['upload'],wiki:'firewall'});
+      def('upnpd.upnpd.upload','Upload cap','上传上限','number','Advertised/capped upstream bandwidth in kbit/s, companion to download.','上行带宽（kbit/s），与 download 配套。',{rel:['download'],wiki:'firewall'});
+      def('upnpd.upnpd.igdv1','IGDv1 mode','IGDv1 模式','bool','Run the gateway device in IGDv1 compatibility mode instead of IGDv2.','以 IGDv1 兼容模式运行网关设备而非 IGDv2。',{wiki:'firewall'});
+      def('upnpd.upnpd.log_output','Log output','记录日志','bool','Log port-mapping activity to the system log — the way to audit which LAN app opened what.','把端口映射活动记入系统日志——审计「哪个内网应用开了什么」的办法。',{def:'0',rel:['enabled'],wiki:'firewall'});
+      def('upnpd.upnpd.use_stun','Use STUN','使用 STUN','bool','Use a STUN server to discover the real external address when the WAN sits behind another NAT (double NAT/CGNAT).','WAN 在另一层 NAT 之后（双重 NAT/CGNAT）时，用 STUN 服务器探测真实外部地址。',{rel:['stun_host'],wiki:'firewall'});
+      def('upnpd.upnpd.stun_host','STUN server','STUN 服务器','string','STUN server used when use_stun is on.','use_stun 开启时使用的 STUN 服务器。',{rel:['use_stun'],wiki:'firewall'});
+      def('sqm.queue.interface','Interface','接口','string','Interface SQM shapes — almost always the WAN interface (or its underlying device), since shaping only bites where the bottleneck is.','SQM 整形的接口——几乎总是 WAN 接口（或其底层设备），因为整形只在瓶颈处才起作用。',{rel:['download','upload'],wiki:'network'});
+      def('sqm.queue.enabled','SQM enabled','启用 SQM','bool','Master switch for this queue instance. Note: hardware/software flow offloading bypasses the qdisc — SQM on with offloading on often means SQM silently does nothing for NAT traffic.','本队列实例的总开关。注意：硬件/软件流卸载会绕过 qdisc——SQM 开着而卸载也开着时，SQM 对 NAT 流量常常是静默无效的。',{rel:['flow_offloading','qdisc'],wiki:'network'});
+      def('sqm.queue.download','Download speed','下载速率','number','Shaped downstream rate in kbit/s. Set to ~85–95% of the real measured line rate: SQM only controls the queue when it is slightly slower than the bottleneck. Copying the ISP\u2019s headline rate defeats it.','整形后的下行速率（kbit/s）。设为实测线路速率的约 85–95%：SQM 必须略慢于瓶颈才能接管队列。照抄运营商宣传速率等于白设。',{rel:['upload','qdisc'],wiki:'network'});
+      def('sqm.queue.upload','Upload speed','上传速率','number','Shaped upstream rate in kbit/s; same ~85–95%-of-real-rate rule as download.','整形后的上行速率（kbit/s）；与 download 同一条规则：实测速率的约 85–95%。',{rel:['download'],wiki:'network'});
+      def('sqm.queue.qdisc','Queue discipline','队列算法','enum','The AQM doing the work: fq_codel (light, near-zero tuning) or cake (more features, more CPU). On slow CPUs cake at high rates can itself become the bottleneck.','干活的 AQM 算法：fq_codel（轻量、几乎不用调）或 cake（功能多、更吃 CPU）。慢 CPU 上高速度跑 cake，它自己可能成为瓶颈。',{opts:['fq_codel','cake'],rel:['script'],wiki:'network'});
+      def('sqm.queue.script','Qdisc script','队列脚本','string','Setup script implementing the qdisc choice, e.g. piece_of_cake.qos or layer_cake.qos for cake, simplest.qos for fq_codel setups. qdisc and script must correspond.','实现所选 qdisc 的 setup 脚本，如 cake 的 piece_of_cake.qos / layer_cake.qos、fq_codel 的 simplest.qos。qdisc 与 script 必须对应。',{rel:['qdisc'],wiki:'network'});
+      def('sqm.queue.linklayer','Link layer','链路层','enum','Link-layer accounting for per-packet overhead: ethernet, atm (old ADSL), none. Wrong overhead on ATM/DSL lines skews the shaper\u2019s math by several percent.','每包开销的链路层核算：ethernet、atm（老 ADSL）、none。ATM/DSL 线路上开销算错会让整形数学偏几个百分点。',{opts:['ethernet','atm','none'],rel:['overhead'],wiki:'network'});
+      def('sqm.queue.overhead','Per-packet overhead','每包开销','number','Extra bytes per packet charged by the link technology (see linklayer) — e.g. PPPoE/VLAN encapsulations.','链路技术带来的每包额外字节（见 linklayer）——如 PPPoE/VLAN 封装。',{rel:['linklayer'],wiki:'network'});
+      /* ---- generic keys (section-independent, documented behaviour) ---- */
+      def('*.enabled','Enabled','启用','bool','Master on/off switch for the containing section or service in most OpenWrt packages: the section stays in the file but is skipped while off.','大多数 OpenWrt 软件包里所在段/服务的总开关：段留在文件里，关闭时被跳过。',{});
+      def('*.disabled','Disabled','禁用','bool','Inverse master switch: 1 disables the containing section (interface, radio, rule…) without deleting it.','反向总开关：1 表示禁用所在段（接口、射频、规则…）但不删除它。',{});
+      def('*.name','Name','名称','string','Name/label of the containing section, referenced by other sections or shown in LuCI.','所在段的名称/标签，被其他段引用或在 LuCI 里显示。',{});
+      def('*.type','Type','类型','string','Type discriminator of the containing section or device.','所在段或设备的类型判别值。',{});
+      function kbFor(pkg,type,key){
+        return KB[pkg+'.'+type+'.'+key]||KB[pkg+'.*.'+key]||KB['*.'+key]||null;
+      }
+
+      /* ================= layers (each parameter lives in exactly one) ================= */
+      const LAYERS=[
+        {id:'access',en:'Access · WAN',zh:'接入'},
+        {id:'lan',en:'LAN · DHCP · DNS',zh:'局域网'},
+        {id:'ipv6',en:'IPv6',zh:'IPv6'},
+        {id:'wireless',en:'Wireless',zh:'无线'},
+        {id:'security',en:'Firewall · SSH · Web',zh:'安全'},
+        {id:'services',en:'Services',zh:'服务'},
+        {id:'system',en:'System',zh:'系统'},
+        {id:'other',en:'Other packages',zh:'其他包'}
+      ];
+      function layerOf(pkg,sec){
+        if(pkg==='wireless')return 'wireless';
+        if(pkg==='firewall'||pkg==='dropbear'||pkg==='uhttpd')return 'security';
+        if(pkg==='system'||pkg==='luci'||pkg==='rpcd')return 'system';
+        if(pkg==='sqm'||pkg==='upnpd'||pkg==='adblock'||pkg==='ddns'||pkg==='samba4'||pkg==='ttyd')return 'services';
+        if(pkg==='dhcp'){
+          if(sec.type==='dnsmasq'||sec.type==='odhcpd'||sec.type==='host')return 'lan';
+          return 'lan';
+        }
+        if(pkg==='network'){
+          if(sec.type==='interface'){
+            const n=sec.name||'';
+            if(/^wan/i.test(n))return 'access';
+            return 'lan';
+          }
+          if(sec.type==='globals')return 'ipv6';
+          return 'lan';
+        }
+        return 'other';
+      }
+      const SEC_TITLES={
+        'network.interface':n=>({en:'Interface '+(n||''),zh:'接口'}),
+        'network.device':()=>({en:'Device / bridge',zh:'设备/网桥'}),
+        'network.globals':()=>({en:'Network globals',zh:'网络全局'}),
+        'network.switch':()=>({en:'Switch',zh:'交换机'}),
+        'network.switch_vlan':()=>({en:'Switch VLAN',zh:'交换机 VLAN'}),
+        'network.route':()=>({en:'Static route',zh:'静态路由'}),
+        'dhcp.dnsmasq':()=>({en:'dnsmasq · DNS & DHCP server',zh:'DNS/DHCP 服务器'}),
+        'dhcp.dhcp':n=>({en:'DHCP service · '+(n||''),zh:'DHCP 服务'}),
+        'dhcp.host':n=>({en:'Static host · '+(n||''),zh:'静态主机'}),
+        'dhcp.odhcpd':()=>({en:'odhcpd',zh:'odhcpd'}),
+        'wireless.wifi-device':n=>({en:'Radio · '+(n||''),zh:'射频'}),
+        'wireless.wifi-iface':()=>({en:'Wi-Fi network (SSID)',zh:'无线网络'}),
+        'firewall.defaults':()=>({en:'Firewall defaults',zh:'防火墙默认'}),
+        'firewall.zone':()=>({en:'Firewall zone',zh:'防火墙区域'}),
+        'firewall.forwarding':()=>({en:'Zone forwarding',zh:'区域转发'}),
+        'firewall.rule':()=>({en:'Firewall rule',zh:'防火墙规则'}),
+        'firewall.redirect':()=>({en:'Port forward',zh:'端口转发'}),
+        'firewall.include':()=>({en:'Ruleset include',zh:'规则集包含'}),
+        'system.system':()=>({en:'System',zh:'系统'}),
+        'system.timeserver':()=>({en:'NTP time server',zh:'时间同步'}),
+        'system.led':()=>({en:'LED',zh:'LED'}),
+        'dropbear.dropbear':()=>({en:'Dropbear SSH',zh:'SSH 服务器'}),
+        'uhttpd.main':()=>({en:'uHTTPd web server',zh:'Web 服务器'}),
+        'luci.main':()=>({en:'LuCI',zh:'LuCI'}),
+        'upnpd.upnpd':()=>({en:'UPnP (miniupnpd)',zh:'UPnP'}),
+        'sqm.queue':()=>({en:'SQM queue',zh:'SQM 队列'})
+      };
+      function secTitle(pkg,sec){
+        const f=SEC_TITLES[pkg+'.'+sec.type];
+        if(f)return f(sec.name);
+        return {en:sec.type+(sec.name?' · '+sec.name:''),zh:''};
+      }
+
+      /* ================= parser ================= */
+      let uidc=1;
+      function tokenize(line){
+        const toks=[];let i=0;const n=line.length;
+        while(i<n){
+          while(i<n&&/\s/.test(line[i]))i++;
+          if(i>=n)break;
+          let tok='';
+          if(line[i]==="'"||line[i]==='"'){
+            const q=line[i];i++;
+            while(i<n&&line[i]!==q){
+              if(line[i]==='\\'&&i+1<n&&(line[i+1]===q||line[i+1]==='\\')){tok+=line[i+1];i+=2;}
+              else{tok+=line[i];i++;}
+            }
+            i++;
+          }else{
+            while(i<n&&!/\s/.test(line[i])){tok+=line[i];i++;}
+          }
+          toks.push(tok);
+        }
+        return toks;
+      }
+      function newModel(){return {packages:[],warnings:[]};}
+      function getPkg(model,name){
+        let p=model.packages.find(x=>x.name===name);
+        if(!p){p={name:name,sections:[]};model.packages.push(p);}
+        return p;
+      }
+      function addSection(pkg,type,name){
+        const s={uid:uidc++,type:type,name:name||null,options:[]};
+        pkg.sections.push(s);return s;
+      }
+      function setOpt(model,sec,key,value,isList,srcNote){
+        let o=sec.options.find(x=>x.key===key);
+        if(isList){
+          if(!o){o={key:key,values:[],isList:true};sec.options.push(o);}
+          o.isList=true;o.values.push(value);
+        }else{
+          if(o&&!o.isList&&o.values.length&&o.values[0]!==value){
+            model.warnings.push('Duplicate option "'+key+'" in '+sec.type+(sec.name?' '+sec.name:'')+': later value wins in UCI; the earlier value "'+o.values[0]+'" is overridden by "'+value+'". 同一个 option 出现两次，UCI 以后者为准。');
+          }
+          if(!o){o={key:key,values:[],isList:false};sec.options.push(o);}
+          o.values=[value];
+        }
+      }
+      function parseConfigText(model,text,fallbackPkg){
+        const lines=text.split(/\r?\n/);
+        let curPkg=fallbackPkg||null, curSec=null;
+        for(const raw of lines){
+          const line=raw.trim();
+          if(!line||line.startsWith('#'))continue;
+          const toks=tokenize(line);
+          if(!toks.length)continue;
+          const head=toks[0];
+          if(head==='package'&&toks[1]){curPkg=toks[1];getPkg(model,curPkg);curSec=null;continue;}
+          if(head==='config'&&toks[1]){
+            if(!curPkg){curPkg=fallbackPkg||'unknown';}
+            const pkg=getPkg(model,curPkg);
+            curSec=addSection(pkg,toks[1],toks[2]||null);
+            continue;
+          }
+          if((head==='option'||head==='list')&&toks[1]!==undefined&&curSec){
+            setOpt(model,curSec,toks[1],toks.slice(2).join(' '),head==='list');
+            continue;
+          }
+        }
+      }
+      function parseShowText(model,text){
+        const lines=text.split(/\r?\n/);
+        const secMap={};
+        for(const raw of lines){
+          const line=raw.trim();
+          if(!line||line.startsWith('#'))continue;
+          const eq=line.indexOf('=');
+          if(eq<0)continue;
+          const lhs=line.slice(0,eq).trim(), rhs=line.slice(eq+1).trim();
+          const parts=lhs.split('.');
+          if(parts.length<2)continue;
+          const pkgName=parts[0];
+          const pkg=getPkg(model,pkgName);
+          const secKey=pkgName+'.'+parts[1];
+          const vals=tokenize(rhs);
+          if(parts.length===2){
+            // section declaration: value is the type, name may be @type[idx]
+            const t=vals[0]||parts[1];
+            let name=parts[1], type=t;
+            const m=parts[1].match(/^@(.+)\[\d+\]$/);
+            if(m){type=m[1];name=null;}
+            if(!secMap[secKey]){secMap[secKey]=addSection(pkg,type,name===type?null:name);}
+            continue;
+          }
+          let sec=secMap[secKey];
+          if(!sec){
+            // undeclared (old uci show without types): infer section name only
+            const m=parts[1].match(/^@(.+)\[\d+\]$/);
+            sec=addSection(pkg,m?m[1]:'section',m?null:parts[1]);
+            secMap[secKey]=sec;
+          }
+          const key=parts.slice(2).join('.');
+          if(vals.length>1){vals.forEach(v=>setOpt(model,sec,key,v,true));}
+          else setOpt(model,sec,key,vals[0]||'',false);
+        }
+      }
+      function detectAndParse(model,text,fallbackPkg){
+        const hasConfig=/^\s*(package|config|option|list)\s/m.test(text);
+        const hasShow=/^[a-zA-Z0-9_-]+\.[^\s=]+=/m.test(text);
+        if(hasShow&&!hasConfig)parseShowText(model,text);
+        else parseConfigText(model,text,fallbackPkg);
+      }
+      async function parseTarGz(model,buf){
+        if(!('DecompressionStream' in window))throw new Error('This browser cannot decompress .gz in-page 此浏览器不支持本地解压');
+        const ds=new DecompressionStream('gzip');
+        const stream=new Blob([buf]).stream().pipeThrough(ds);
+        const ab=await new Response(stream).arrayBuffer();
+        const bytes=new Uint8Array(ab);
+        const dec=new TextDecoder('utf-8');
+        const rdStr=(off,len)=>{let s='';for(let i=off;i<off+len;i++){if(bytes[i]===0)break;s+=String.fromCharCode(bytes[i]);}return s;};
+        let off=0,found=0;
+        while(off+512<=bytes.length){
+          const name=rdStr(off,100);
+          if(!name)break;
+          const prefix=rdStr(off+345,155);
+          const full=prefix?prefix+'/'+name:name;
+          const size=parseInt(rdStr(off+124,12).trim()||'0',8)||0;
+          const type=String.fromCharCode(bytes[off+156]||48);
+          if((type==='0'||type==='\0'||type==='')&&/(^|\/)etc\/config\/[^/]+$/.test(full)){
+            const content=dec.decode(bytes.subarray(off+512,off+512+size));
+            const pkgName=full.split('/').pop();
+            parseConfigText(model,content,pkgName);
+            found++;
+          }
+          off+=512+Math.ceil(size/512)*512;
+        }
+        if(!found)throw new Error('No /etc/config/* files found in this archive 压缩包里没找到 /etc/config 文件');
+      }
+      function pkgNameFromFile(name){
+        const base=name.split('/').pop().replace(/\.(conf|txt|cfg|uci)$/i,'');
+        const known=['network','dhcp','wireless','firewall','system','dropbear','luci','uhttpd','upnpd','sqm','adblock','ddns','rpcd','mwan3','samba4','ttyd','odhcpd','fstab','led','attendedsysupgrade'];
+        return known.includes(base)?base:null;
+      }
+
+      /* ================= model helpers ================= */
+      function secRef(pkg,sec){
+        if(sec.name)return sec.name;
+        let idx=0;
+        for(const s of pkg.sections){if(s===sec)break;if(s.type===sec.type&&!s.name)idx++;}
+        return '@'+sec.type+'['+idx+']';
+      }
+      function flatMap(model){
+        const m=new Map();
+        for(const pkg of model.packages)for(const sec of pkg.sections){
+          const ref=secRef(pkg,sec);
+          for(const o of sec.options){
+            m.set(pkg.name+'.'+ref+'.'+o.key,{pkg:pkg,sec:sec,opt:o,path:pkg.name+'.'+ref+'.'+o.key});
+          }
+        }
+        return m;
+      }
+      function countParams(model){let n=0;for(const p of model.packages)for(const s of p.sections)n+=s.options.length;return n;}
+      function countSections(model){let n=0;for(const p of model.packages)n+=p.sections.length;return n;}
+      function cloneModel(model){return JSON.parse(JSON.stringify(model));}
+      function findOpt(model,pkgName,secNameOrRef,key){
+        const fm=flatMap(model);
+        for(const [path,e] of fm){
+          if(e.pkg.name!==pkgName)continue;
+          const ref=secRef(e.pkg,e.sec);
+          if((e.sec.name===secNameOrRef||ref===secNameOrRef)&&e.opt.key===key)return e;
+        }
+        return null;
+      }
+      function getVal(model,pkgName,secName,key){
+        const e=findOpt(model,pkgName,secName,key);
+        return e?e.opt.values:null;
+      }
+      function sectionsOf(model,pkgName,type){
+        const p=model.packages.find(x=>x.name===pkgName);
+        if(!p)return [];
+        return p.sections.filter(s=>!type||s.type===type);
+      }
+      function diffModels(orig,cur){
+        const a=flatMap(orig),b=flatMap(cur),out=[];
+        for(const [path,eb] of b){
+          const ea=a.get(path);
+          if(!ea){out.push({path:path,kind:'added',old:null,new:eb.opt.values.slice(),entry:eb});}
+          else if(ea.opt.values.join('\u0001')!==eb.opt.values.join('\u0001')||ea.opt.isList!==eb.opt.isList){
+            out.push({path:path,kind:'changed',old:ea.opt.values.slice(),new:eb.opt.values.slice(),entry:eb});
+          }
+        }
+        for(const [path,ea] of a){
+          if(!b.has(path))out.push({path:path,kind:'deleted',old:ea.opt.values.slice(),new:null,entry:ea});
+        }
+        return out;
+      }
+
+      /* ================= serializers ================= */
+      function q(v){
+        v=String(v);
+        if(v==='' )return "''";
+        if(!/[\s'#"]/.test(v))return v;
+        if(!v.includes("'"))return "'"+v+"'";
+        return "'"+v.replace(/'/g,"'\\''")+"'";
+      }
+      function sectionToConfig(sec){
+        let out='config '+sec.type+(sec.name?' '+q(sec.name):'')+'\n';
+        for(const o of sec.options){
+          if(o.isList||o.values.length>1){for(const v of o.values)out+='\tlist '+o.key+' '+q(v)+'\n';}
+          else out+='\toption '+o.key+' '+q(o.values[0]||'')+'\n';
+        }
+        return out;
+      }
+      function toExportText(model){
+        let out='';
+        for(const pkg of model.packages){
+          out+='package '+pkg.name+'\n\n';
+          for(const sec of pkg.sections)out+=sectionToConfig(sec)+'\n';
+        }
+        return out.trimEnd()+'\n';
+      }
+      function toConfigText(pkg){let out='';for(const sec of pkg.sections)out+=sectionToConfig(sec)+'\n';return out.trimEnd()+'\n';}
+      const RELOADS={network:'/etc/init.d/network reload',dhcp:'/etc/init.d/dnsmasq reload; /etc/init.d/odhcpd reload',wireless:'wifi reload',firewall:'/etc/init.d/firewall reload',system:'/etc/init.d/system reload',dropbear:'/etc/init.d/dropbear restart',uhttpd:'/etc/init.d/uhttpd restart',luci:'/etc/init.d/uhttpd restart',upnpd:'/etc/init.d/miniupnpd restart',sqm:'/etc/init.d/sqm restart'};
+      function batchForDiff(diff,full){
+        const lines=[];
+        const touchedPkgs=new Set();
+        const secCreated=new Set();
+        for(const d of diff){
+          const e=d.entry,pkg=e.pkg;
+          touchedPkgs.add(pkg.name);
+          const ref=secRef(pkg,e.sec);
+          const base=pkg.name+'.'+ref;
+          if(d.kind==='deleted'){
+            lines.push('uci delete '+base+'.'+e.opt.key);
+          }else if(e.opt.isList||e.opt.values.length>1){
+            if(d.kind==='changed')lines.push('uci delete '+base+'.'+e.opt.key);
+            for(const v of e.opt.values)lines.push('uci add_list '+base+'.'+e.opt.key+'='+q(v));
+          }else{
+            lines.push('uci set '+base+'.'+e.opt.key+'='+q(e.opt.values[0]||''));
+          }
+        }
+        return {lines:lines,touched:touchedPkgs};
+      }
+      function buildBatchScript(model,orig){
+        const diff=orig?diffModels(orig,model):null;
+        const now=new Date();
+        let out='#!/bin/sh\n# Generated by OpenWrt Config Modifier · '+now.toLocaleString()+'\n# Source: '+state.sourceLabel+'\n# Review every line before running.  执行前逐行核对。\nset -x\n';
+        let parts;
+        if(diff){
+          parts=batchForDiff(diff);
+          if(!diff.length)out+='# No changes vs the loaded file. 与加载的文件相比没有变更。\n';
+        }else{
+          const all=[];
+          for(const pkg of model.packages)for(const sec of pkg.sections){
+            const ref=secRef(pkg,sec);const base=pkg.name+'.'+ref;
+            all.push('uci set '+base+'='+q(sec.type));
+            for(const o of sec.options){
+              if(o.isList||o.values.length>1)for(const v of o.values)all.push('uci add_list '+base+'.'+o.key+'='+q(v));
+              else all.push('uci set '+base+'.'+o.key+'='+q(o.values[0]||''));
+            }
+          }
+          parts={lines:all,touched:new Set(model.packages.map(p=>p.name))};
+        }
+        out+=parts.lines.join('\n')+(parts.lines.length?'\n':'');
+        for(const p of parts.touched)out+='uci commit '+p+'\n';
+        const rel=Array.from(parts.touched).map(p=>RELOADS[p]).filter(Boolean);
+        if(rel.length)out+='# Apply / 生效:\n'+rel.map(r=>'#   '+r).join('\n')+'\n';
+        return out;
+      }
+
+      /* ================= sample config (demonstration data, planted issues) ================= */
+      const SAMPLE=`package network
+
+config interface 'loopback'
+	option device 'lo'
+	option proto 'static'
+	option ipaddr '127.0.0.1'
+	option netmask '255.0.0.0'
+
+config globals 'globals'
+	option ula_prefix 'fd8a:3f2c:9b10::/48'
+
+config device
+	option name 'br-lan'
+	option type 'bridge'
+	list ports 'lan1'
+	list ports 'lan2'
+	list ports 'lan3'
+
+config interface 'lan'
+	option device 'br-lan'
+	option proto 'static'
+	option ipaddr '192.168.1.1'
+	option netmask '255.255.255.0'
+	option ip6assign '60'
+	list dns '223.5.5.5'
+
+config interface 'guest'
+	option device 'eth0.20'
+	option proto 'static'
+	option ipaddr '192.168.2.1'
+	option netmask '255.255.255.0'
+	option ip6assign '64'
+
+config interface 'wan'
+	option device 'eth0'
+	option proto 'pppoe'
+	option username '05121234567@nj.example'
+	option password 'broadband-pass'
+	option ipv6 '1'
+	option mtu '1500'
+	list dns '223.5.5.5'
+	list dns '119.29.29.29'
+
+config interface 'wan6'
+	option device '@wan'
+	option proto 'dhcpv6'
+	option reqaddress 'try'
+	option reqprefix '60'
+	option ip6prefix '2408:8207:1a2b::/60'
+
+package dhcp
+
+config dnsmasq
+	option domainneeded '1'
+	option boguspriv '1'
+	option localise_queries '1'
+	option rebind_protection '1'
+	option rebind_localhost '1'
+	option local '/lan/'
+	option domain 'lan'
+	option expandhosts '1'
+	option cachesize '1000'
+	option authoritative '1'
+	option readethers '1'
+	option leasefile '/tmp/dhcp.leases'
+	option resolvfile '/tmp/resolv.conf.d/resolv.conf.auto'
+	option noresolv '1'
+	option localservice '1'
+	option ednspacket_max '1232'
+
+config dhcp 'lan'
+	option interface 'lan'
+	option start '200'
+	option limit '100'
+	option leasetime '12h'
+	option dhcpv4 'server'
+	option dhcpv6 'server'
+	option ra 'server'
+	list dhcp_option '6,8.8.8.8'
+
+config dhcp 'guest'
+	option interface 'guest'
+	option start '100'
+	option limit '50'
+	option leasetime '2h'
+	option ra 'disabled'
+	option dhcpv6 'disabled'
+
+config dhcp 'wan'
+	option interface 'wan'
+	option ignore '1'
+
+config odhcpd 'odhcpd'
+	option maindhcp '0'
+	option leasefile '/tmp/hosts/odhcpd'
+	option loglevel '4'
+
+package wireless
+
+config wifi-device 'radio0'
+	option type 'mac80211'
+	option channel 'auto'
+	option htmode 'VHT80'
+	option band '5g'
+
+config wifi-iface 'default_radio0'
+	option device 'radio0'
+	option network 'lan'
+	option mode 'ap'
+	option ssid 'RoyHome'
+	option encryption 'psk2'
+	option key 'homewifi'
+
+config wifi-device 'radio1'
+	option type 'mac80211'
+	option channel '6'
+	option htmode 'HT20'
+	option band '2g'
+	option country 'CN'
+
+config wifi-iface 'guest_radio1'
+	option device 'radio1'
+	option network 'guest'
+	option mode 'ap'
+	option ssid 'RoyHome-Guest'
+	option encryption 'none'
+
+package firewall
+
+config defaults
+	option syn_flood '1'
+	option input 'REJECT'
+	option output 'ACCEPT'
+	option forward 'REJECT'
+
+config zone
+	option name 'lan'
+	list network 'lan'
+	list network 'guest'
+	option input 'ACCEPT'
+	option output 'ACCEPT'
+	option forward 'ACCEPT'
+
+config zone
+	option name 'wan'
+	list network 'wan'
+	list network 'wan6'
+	option input 'ACCEPT'
+	option output 'ACCEPT'
+	option forward 'REJECT'
+	option masq '1'
+	option mtu_fix '1'
+
+config forwarding
+	option src 'lan'
+	option dest 'wan'
+
+config rule
+	option name 'Allow-DHCP-Renew'
+	option src 'wan'
+	option proto 'udp'
+	option dest_port '68'
+	option target 'ACCEPT'
+	option family 'ipv4'
+
+package system
+
+config system
+	option hostname 'OpenWrt'
+	option timezone 'UTC'
+	option zonename 'Asia/Shanghai'
+	option ttylogin '0'
+
+config timeserver 'ntp'
+	list server '0.openwrt.pool.ntp.org'
+	list server '1.openwrt.pool.ntp.org'
+	option enabled '1'
+
+package dropbear
+
+config dropbear 'main'
+	option enable '1'
+	option PasswordAuth 'on'
+	option RootPasswordAuth 'on'
+	option Port '22'
+
+package upnpd
+
+config upnpd 'config'
+	option enabled '1'
+	option enable_upnp '1'
+	option enable_natpmp '1'
+	option secure_mode '0'
+	option download '1024'
+	option upload '512'
+`;
+
+      /* ================= state ================= */
+      const state={
+        original:null, model:null, sourceLabel:'', view:'params',
+        layer:'all', pkgFilter:'all', query:'', filt:'all',
+        selectedPath:null, expFmt:'batch-diff', expPkg:null,
+        findings:[], diff:[]
+      };
+
+      /* ================= IP helpers ================= */
+      function ipToNum(ip){const p=String(ip||'').trim().split('.');if(p.length!==4)return null;let n=0;for(const x of p){const v=Number(x);if(!Number.isInteger(v)||v<0||v>255||x==='')return null;n=n*256+v;}return n;}
+      function numToIp(n){return [(n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255].join('.');}
+      function maskToNum(m){if(m==null)return null;const s=String(m).trim();if(/^\d+$/.test(s)){const b=Number(s);if(b<0||b>32)return null;return b===0?0:(0xFFFFFFFF<<(32-b))>>>0;}return ipToNum(s);}
+      function maskBits(mn){if(mn==null)return null;let c=0,x=mn>>>0;while(x){c+=x&1;x>>>=1;}return c;}
+      function isIp4(v){return ipToNum(v)!=null;}
+      function isIp6(v){v=String(v||'').trim();if(!v.includes(':'))return false;return /^[0-9a-fA-F:]+$/.test(v)&&(/::/.test(v)||v.split(':').length===8);}
+      function isCidr(v,bits){const p=String(v||'').trim().split('/');if(p.length!==2)return false;const b=Number(p[1]);if(!Number.isInteger(b)||b<0||b>bits)return false;return bits===32?isIp4(p[0]):isIp6(p[0]);}
+      function isMac(v){return /^([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$/.test(String(v||'').trim());}
+
+      /* ================= diagnostics engine ================= */
+      function analyze(model){
+        const F=[];
+        const push=(sev,id,titleEn,titleZh,en,zh,paths,fix)=>F.push({sev:sev,id:id,titleEn:titleEn,titleZh:titleZh,en:en,zh:zh,paths:paths||[],fix:fix||null});
+        const pathOf=(model,sec,key)=>{for(const pkg of model.packages){if(pkg.sections.includes(sec))return pkg.name+'.'+secRef(pkg,sec)+'.'+key;}return key;};
+        /* firewall: WAN zone input open */
+        for(const z of sectionsOf(model,'firewall','zone')){
+          const zname=(z.options.find(o=>o.key==='name')||{values:['']}).values[0];
+          const nets=(z.options.find(o=>o.key==='network')||{values:[]}).values;
+          const input=(z.options.find(o=>o.key==='input')||{values:[]}).values[0];
+          const isWan=zname==='wan'||nets.some(n=>/^wan/.test(n));
+          if(isWan&&input==='ACCEPT'){
+            push('crit','wan-input','WAN zone accepts all input','WAN 区域入站全开',
+              'The "'+zname+'" zone has input ACCEPT: every service listening on the router (LuCI, SSH, DNS) is reachable from the internet unless a narrower rule intervenes. The stock policy is REJECT.',
+              '「'+zname+'」区域的 input 是 ACCEPT：路由器上所有监听服务（LuCI、SSH、DNS）都能从互联网直接访问，除非有更细的规则拦截。官方出厂策略是 REJECT。',
+              [pathOf(model,z,'input')],
+              {label:'Set input to REJECT 改为 REJECT',apply:m=>{const e=findOpt(m,'firewall',secRef(m.packages.find(p=>p.name==='firewall'),z),'input');if(e)e.opt.values=['REJECT'];}});
+          }
+          if(isWan){
+            const masq=(z.options.find(o=>o.key==='masq')||{values:[]}).values[0];
+            if(!isTrue(masq)){
+              push('warn','wan-masq','NAT (masq) is off on the WAN zone','WAN 区域没开 NAT',
+                'The "'+zname+'" zone does not masquerade outgoing traffic. LAN packets would leave with private source addresses and nothing on the internet can reply — DNS resolves, but no page loads.',
+                '「'+zname+'」区域没有开启 masq（地址伪装）。内网数据包会带着私有源地址出去，互联网无法回包——表现为 DNS 能解析、网页全打不开。',
+                [pathOf(model,z,'masq')],
+                {label:'Enable masq 开启 masq',apply:m=>{applySet(m,'firewall',z,'masq','1');}});
+            }
+          }
+        }
+        /* lan->wan forwarding */
+        const zones=sectionsOf(model,'firewall','zone');
+        const hasLanWan=zones.length&&sectionsOf(model,'firewall','forwarding').some(f=>{
+          const s=(f.options.find(o=>o.key==='src')||{values:[]}).values[0];
+          const d=(f.options.find(o=>o.key==='dest')||{values:[]}).values[0];
+          return s==='lan'&&d==='wan';
+        });
+        const zoneNames=zones.map(z=>(z.options.find(o=>o.key==='name')||{values:[]}).values[0]);
+        if(zoneNames.includes('lan')&&zoneNames.includes('wan')&&!hasLanWan){
+          push('warn','no-fwd','No lan → wan forwarding','没有 lan → wan 转发',
+            'Zones lan and wan both exist, but no forwarding section connects them, so LAN traffic cannot be routed to the internet (the zones\u2019 own forward policies do not substitute for an inter-zone forwarding).',
+            'lan 与 wan 区域都存在，但没有任何 forwarding 段把它们连起来，内网流量无法路由到互联网（区域自身的 forward 策略不能代替跨区域转发）。',
+            [],null);
+        }
+        /* wireless */
+        for(const s of sectionsOf(model,'wireless','wifi-iface')){
+          const g=k=>(s.options.find(o=>o.key===k)||{values:[]}).values[0];
+          const enc=(g('encryption')||'').toLowerCase();
+          const ssid=g('ssid')||'(no SSID)';
+          const mode=g('mode')||'ap';
+          if(mode==='ap'&&(enc===''||enc==='none')){
+            push('crit','wifi-open','Open Wi-Fi network "'+ssid+'"','无线网络「'+ssid+'」未加密',
+              'This SSID runs with encryption "none": anyone in range can join and read the traffic, and its clients land on network "'+(g('network')||'lan')+'". Give it at least psk2/sae-mixed with a real passphrase, or — for a deliberate guest network — isolate it on its own network and firewall zone.',
+              '这个 SSID 的 encryption 是「none」：覆盖范围内任何人都能连入并读取流量，且客户端落到网络「'+(g('network')||'lan')+'」上。至少设 psk2/sae-mixed + 真口令；若是刻意的访客网络，应把它隔离到独立网络和防火墙区域。',
+              [pathOf(model,s,'encryption')],null);
+          }
+          if(/psk|sae/.test(enc)){
+            const key=g('key')||'';
+            if(key.length>0&&key.length<8){
+              push('crit','wifi-key-short','Passphrase for "'+ssid+'" is under 8 characters','「'+ssid+'」口令不足 8 位',
+                'hostapd refuses WPA passphrases shorter than 8 characters — this AP will not start at all (symptom: radio is up, SSID never appears).',
+                'hostapd 拒绝短于 8 字符的 WPA 口令——这个 AP 根本起不来（症状：射频在线，SSID 死活不出现）。',
+                [pathOf(model,s,'key')],null);
+            }else if(key.length>=8&&key.length<10){
+              push('warn','wifi-key-weak','Short passphrase for "'+ssid+'" ('+key.length+' chars)','「'+ssid+'」口令偏短（'+key.length+' 字符）',
+                'The passphrase is valid but short; WPA2/WPA3 passphrases are attacked offline from a captured handshake, so length matters more than complexity theatre. 12+ characters is the practical floor.',
+                '口令合法但偏短；WPA2/WPA3 口令可以拿抓到的握手包离线爆破，长度比花哨程度更重要。12 个字符以上是实用下限。',
+                [pathOf(model,s,'key')],null);
+            }
+          }
+          const net=g('network');
+          if(net&&net!=='lan'&&net!=='loopback'&&!isTrue(g('isolate'))){
+            push('info','wifi-isolate','Guest-style SSID "'+ssid+'" without client isolation','访客类 SSID「'+ssid+'」未开客户端隔离',
+              'This SSID sits on network "'+net+'" but AP isolation is off, so its clients can reach each other directly. For a guest/IoT network, isolation plus a restrictive firewall zone is the usual intent.',
+              '这个 SSID 挂在网络「'+net+'」上，但没开 AP 隔离，它的客户端之间可以直达。访客/IoT 网络的通常意图是：隔离 + 受限的防火墙区域。',
+              [pathOf(model,s,'isolate')],
+              {label:'Enable isolate 开启客户端隔离',apply:m=>{applySet(m,'wireless',s,'isolate','1');}});
+          }
+        }
+        for(const d of sectionsOf(model,'wireless','wifi-device')){
+          const c=(d.options.find(o=>o.key==='country')||{values:[]}).values[0];
+          if(!c){
+            push('warn','wifi-country','A radio has no country code','有射频没设国家代码',
+              'Without a country code the radio falls back to a minimal world regulatory domain: fewer channels and lower power, and on 5 GHz often only DFS channels — a classic cause of "5 GHz SSID invisible to some clients". Set the country where the router physically operates.',
+              '没有国家代码时，射频只能用最小的全球法规域：信道更少、功率更低，5 GHz 上常常只剩 DFS 信道——「5 GHz SSID 部分设备搜不到」的经典成因。按路由器实际所在地设置国家代码。',
+              [pathOf(model,d,'country')],null);
+          }
+        }
+        /* dnsmasq DNS chain */
+        for(const s of sectionsOf(model,'dhcp','dnsmasq')){
+          const g=k=>(s.options.find(o=>o.key===k)||{values:[]}).values;
+          if(isTrue((g('noresolv')[0]||'0'))&&g('server').length===0){
+            push('crit','dns-noresolv','noresolv is on but no upstream server is configured','noresolv 已开但没配上游服务器',
+              'dnsmasq is told to ignore the resolv file (noresolv 1) while its server list is empty: it has no upstream at all, so every DNS lookup from clients fails. Either add explicit server entries or turn noresolv off so the WAN-learned servers are used.',
+              'dnsmasq 被要求忽略 resolv 文件（noresolv 1），而 server 列表是空的：它没有任何上游，客户端所有 DNS 查询都会失败。要么补 server 条目，要么关掉 noresolv 用 WAN 学到的服务器。',
+              [pathOf(model,s,'noresolv'),pathOf(model,s,'server')],
+              {label:'Turn noresolv off 关闭 noresolv',apply:m=>{applySet(m,'dhcp',s,'noresolv','0');}});
+          }
+          if(isTrue((g('filter_aaaa')[0]||'0'))){
+            push('info','dns-filter-aaaa','filter_aaaa strips all IPv6 DNS answers','filter_aaaa 剥掉全部 IPv6 解析',
+              'dnsmasq removes AAAA records from upstream replies. On a LAN with working IPv6 this silently forces clients onto IPv4 and can mask the real state of the IPv6 setup.',
+              'dnsmasq 会把上游应答里的 AAAA 记录全部剥掉。内网 IPv6 正常时，它会让客户端静默退回 IPv4，还会掩盖 IPv6 配置的真实状态。',
+              [pathOf(model,s,'filter_aaaa')],null);
+          }
+        }
+        /* peerdns vs custom dns */
+        for(const s of sectionsOf(model,'network','interface')){
+          const g=k=>(s.options.find(o=>o.key===k)||{values:[]}).values;
+          const proto=g('proto')[0]||'';
+          if(['dhcp','dhcpv6','pppoe','ppp'].includes(proto)&&g('dns').length&&(g('peerdns')[0]==null||!isFalseV(g('peerdns')[0]))){
+            push('warn','peerdns','Custom DNS on "'+(s.name||'')+'" competes with peer DNS','「'+(s.name||'')+'」的自定义 DNS 与对端 DNS 冲突',
+              'This interface lists custom dns servers but peerdns is not 0, so the ISP-advertised servers are still accepted into resolv.conf.auto and dnsmasq will use them alongside (or instead of) yours. Set peerdns 0 on both wan and wan6 to make the custom list authoritative.',
+              '这个接口填了自定义 dns，但 peerdns 不是 0，运营商下发的服务器仍会被收进 resolv.conf.auto，dnsmasq 会把它们和你的混用（甚至替代）。在 wan 和 wan6 上都把 peerdns 设 0，自定义列表才说了算。',
+              [pathOf(model,s,'peerdns'),pathOf(model,s,'dns')],
+              {label:'Set peerdns to 0 关闭 peerdns',apply:m=>{applySet(m,'network',s,'peerdns','0');}});
+          }
+          if(proto==='pppoe'){
+            const mtu=Number(g('mtu')[0]);
+            if(Number.isFinite(mtu)&&mtu>1492){
+              push('warn','pppoe-mtu','PPPoE MTU is '+mtu+' (> 1492)','PPPoE 的 MTU 是 '+mtu+'（> 1492）',
+                'PPPoE spends 8 bytes on its header, so on standard 1500-byte Ethernet the largest workable MTU is 1492. At '+mtu+', large packets (TLS handshakes, big downloads) fragment or black-hole — small pings still work, which makes this nasty to spot. The wan zone mtu_fix (MSS clamping) only covers TCP.',
+                'PPPoE 头占 8 字节，标准 1500 字节以太网上可用的最大 MTU 是 1492。填 '+mtu+' 时，大包（TLS 握手、大文件下载）会分片或黑洞——小 ping 照常通，特别难察觉。wan 区域的 mtu_fix（MSS 钳制）只管 TCP。',
+                [pathOf(model,s,'mtu')],
+                {label:'Set MTU to 1492 改为 1492',apply:m=>{applySet(m,'network',s,'mtu','1492');}});
+            }
+          }
+          if(proto==='static'&&!g('ipaddr').length&&!g('ip6addr').length){
+            push('crit','static-noip','Static interface "'+(s.name||'')+'" has no address','静态接口「'+(s.name||'')+'」没有地址',
+              'proto is static but neither ipaddr nor ip6addr is set — the interface comes up with no address at all.',
+              'proto 是 static，但 ipaddr 和 ip6addr 都没填——接口拉起来也没有任何地址。',
+              [pathOf(model,s,'proto')],null);
+          }
+        }
+        /* DHCP pool math */
+        for(const s of sectionsOf(model,'dhcp','dhcp')){
+          if(isTrue((s.options.find(o=>o.key==='ignore')||{values:['0']}).values[0]))continue;
+          const iface=(s.options.find(o=>o.key==='interface')||{values:[s.name]}).values[0];
+          const start=Number((s.options.find(o=>o.key==='start')||{values:[NaN]}).values[0]);
+          const limit=Number((s.options.find(o=>o.key==='limit')||{values:[NaN]}).values[0]);
+          if(!iface||!Number.isFinite(start)||!Number.isFinite(limit))continue;
+          const ie=findSection(model,'network','interface',iface);
+          if(!ie)continue;
+          const ip=(ie.options.find(o=>o.key==='ipaddr')||{values:[]}).values[0];
+          const nm=(ie.options.find(o=>o.key==='netmask')||{values:[]}).values[0];
+          const ipn=ipToNum(ip), mn=maskToNum(nm);
+          if(ipn==null||mn==null)continue;
+          const net=ipn&mn, bcast=net|(~mn>>>0), size=bcast-net+1;
+          const first=net+start, last=first+limit-1;
+          const ref=secRef({name:'dhcp',sections:model.packages.find(p=>p.name==='dhcp').sections},s);
+          if(last>bcast-1){
+            push('crit','pool-overflow','DHCP pool for "'+iface+'" overflows its subnet','「'+iface+'」的 DHCP 地址池越界',
+              'start '+start+' + limit '+limit+' puts the pool at '+numToIp(first)+' – '+numToIp(last)+', but subnet '+numToIp(net)+'/'+maskBits(mn)+' ends at '+numToIp(bcast-1)+'. Addresses past the subnet end are unusable. Largest valid limit here is '+(bcast-1-first+1)+'.',
+              'start '+start+' + limit '+limit+' 算出的池是 '+numToIp(first)+' – '+numToIp(last)+'，但子网 '+numToIp(net)+'/'+maskBits(mn)+' 到 '+numToIp(bcast-1)+' 就结束了。超出子网的地址不可用；此处 limit 最大只能填 '+(bcast-1-first+1)+'。',
+              ['dhcp.'+ref+'.start','dhcp.'+ref+'.limit'],
+              {label:'Clamp limit to '+(bcast-1-first+1)+' 把 limit 收紧',apply:m=>{applySet(m,'dhcp',s,'limit',String(bcast-1-first+1));}});
+          }else if(ipn>=first&&ipn<=last){
+            push('info','pool-router-inside','Router address sits inside the "'+iface+'" DHCP pool','路由器地址落在「'+iface+'」地址池内',
+              'The interface address '+ip+' is inside its own pool ('+numToIp(first)+' – '+numToIp(last)+'). dnsmasq avoids handing out the router\u2019s own address, but keeping the gateway outside the pool is cleaner and avoids edge cases with other DHCP servers.',
+              '接口地址 '+ip+' 落在它自己的地址池（'+numToIp(first)+' – '+numToIp(last)+'）之内。dnsmasq 不会把路由器自身地址发出去，但网关留在池外更干净，也免了多 DHCP 服务器时的边界情况。',
+              ['dhcp.'+ref+'.start','dhcp.'+ref+'.limit'],null);
+          }
+        }
+        /* IPv6 prefix accounting */
+        const delegated=(()=>{
+          for(const s of sectionsOf(model,'network','interface')){
+            const v=(s.options.find(o=>o.key==='ip6prefix')||{values:[]}).values[0];
+            if(v&&v.includes('/')){const b=Number(v.split('/')[1]);if(Number.isFinite(b))return b;}
+          }
+          return null;
+        })();
+        if(delegated!=null){
+          let used=0;const detail=[];
+          for(const s of sectionsOf(model,'network','interface')){
+            const a=(s.options.find(o=>o.key==='ip6assign')||{values:[]}).values[0];
+            if(a){const A=Number(a);if(Number.isFinite(A)&&A>=delegated&&A<=64){used+=Math.pow(2,64-A);detail.push((s.name||'?')+' /'+A);}}
+          }
+          const cap=Math.pow(2,64-delegated);
+          if(used>cap){
+            push('warn','v6-overcommit','IPv6 assignments exceed the delegated /'+delegated,'IPv6 分配超过委派的 /'+delegated,
+              'Interfaces request '+detail.join(', ')+' — together they need '+used+' /64 subnets, but a /'+delegated+' delegation only contains '+cap+'. netifd will starve the later interfaces: their clients get ULA only, or nothing. Shrink an ip6assign (64 is enough for one LAN) or get a bigger delegation (reqprefix).',
+              '各接口的分配为 '+detail.join(', ')+'——合计需要 '+used+' 个 /64 子网，而 /'+delegated+' 委派里只有 '+cap+' 个。netifd 会饿死排在后面的接口：它们的客户端只有 ULA、甚至什么都没有。把某个 ip6assign 改小（一个 LAN 用 64 就够），或争取更大的委派（reqprefix）。',
+              [],null);
+          }
+        }
+        /* ip6assign but RA off */
+        for(const s of sectionsOf(model,'dhcp','dhcp')){
+          const iface=(s.options.find(o=>o.key==='interface')||{values:[s.name]}).values[0];
+          const ra=(s.options.find(o=>o.key==='ra')||{values:[]}).values[0];
+          const v6=(s.options.find(o=>o.key==='dhcpv6')||{values:[]}).values[0];
+          if(!iface)continue;
+          const ie=findSection(model,'network','interface',iface);
+          if(!ie)continue;
+          const assign=(ie.options.find(o=>o.key==='ip6assign')||{values:[]}).values[0];
+          if(assign&&(ra==='disabled'||ra==null||ra==='')&&(v6==='disabled'||v6==null||v6==='')){
+            push('warn','v6-no-ra','Interface "'+iface+'" assigns IPv6 but advertises nothing','接口「'+iface+'」分配了 IPv6 却不通告',
+              'network.'+iface+' has ip6assign '+assign+', yet dhcp.'+iface+' has ra and dhcpv6 both disabled/unset — odhcpd will not send router advertisements, so clients never learn the prefix or the gateway. This is exactly the "router has IPv6, clients don\u2019t" split-brain.',
+              'network.'+iface+' 设了 ip6assign '+assign+'，但 dhcp.'+iface+' 的 ra 和 dhcpv6 都是 disabled/未设——odhcpd 不会发路由通告，客户端永远学不到前缀和网关。这就是「路由器有 IPv6、客户端没有」的经典脑裂。',
+              [pathOf(model,ie,'ip6assign'),pathOf(model,s,'ra')],
+              {label:'Set ra and dhcpv6 to server 开启 RA 与 DHCPv6',apply:m=>{applySet(m,'dhcp',s,'ra','server');applySet(m,'dhcp',s,'dhcpv6','server');}});
+          }
+        }
+        /* ULA missing hint */
+        const hasAssign=sectionsOf(model,'network','interface').some(s=>s.options.some(o=>o.key==='ip6assign'));
+        const globals=sectionsOf(model,'network','globals')[0];
+        const ula=globals?(globals.options.find(o=>o.key==='ula_prefix')||{values:[]}).values[0]:null;
+        if(hasAssign&&!ula&&delegated==null){
+          push('info','v6-no-ula','No ULA prefix and no static prefix configured','没配 ULA 前缀也没有静态前缀',
+            'Interfaces use ip6assign, but network.globals has no ula_prefix and no interface carries ip6prefix. LAN IPv6 then depends entirely on the ISP delegation arriving — when it doesn\u2019t (or changes), clients lose global IPv6 and have nothing stable to fall back on.',
+            '接口用了 ip6assign，但 network.globals 没有 ula_prefix、也没有接口带 ip6prefix。内网 IPv6 就完全依赖运营商委派的到达——委派不来（或变了）时，客户端全局 IPv6 断掉，也没有稳定的本地地址兜底。',
+            [],null);
+        }
+        /* DNS defined in several places */
+        const dnsPlaces=[];
+        for(const s of sectionsOf(model,'network','interface')){
+          const d=(s.options.find(o=>o.key==='dns')||{values:[]}).values;
+          if(d.length)dnsPlaces.push({where:'network.'+(s.name||'')+'.dns',vals:d.slice()});
+        }
+        for(const s of sectionsOf(model,'dhcp','dnsmasq')){
+          const d=(s.options.find(o=>o.key==='server')||{values:[]}).values.filter(v=>!/^\/.*\//.test(v));
+          if(d.length)dnsPlaces.push({where:'dhcp.@dnsmasq[0].server',vals:d.slice()});
+        }
+        for(const s of sectionsOf(model,'dhcp','dhcp')){
+          for(const o of s.options){
+            if(o.key==='dhcp_option')for(const v of o.values){const mm=v.match(/^6,(.+)$/);if(mm)dnsPlaces.push({where:'dhcp.'+(s.name||'')+'.dhcp_option (option 6)',vals:mm[1].split(',').map(x=>x.trim())});}
+          }
+        }
+        if(dnsPlaces.length>=2){
+          const sets=new Set(dnsPlaces.map(p=>p.vals.slice().sort().join(',')));
+          if(sets.size>1){
+            push('warn','dns-multi','DNS servers are defined in '+dnsPlaces.length+' places, with different values','DNS 在 '+dnsPlaces.length+' 处定义且取值不一致',
+              'Upstream/client DNS is set in: '+dnsPlaces.map(p=>p.where+' = '+p.vals.join(', ')).join(' · ')+'. These layers do different jobs — interface dns feeds the router\u2019s resolver (when peerdns is 0), dnsmasq server is the forwarder list, DHCP option 6 hands servers directly to clients, bypassing dnsmasq — so disagreement here produces "some clients resolve differently" bugs. Pick one canonical place per job.',
+              '上游/客户端 DNS 分别设在：'+dnsPlaces.map(p=>p.where+' = '+p.vals.join(', ')).join(' · ')+'。这几层干的活不同——接口 dns 喂路由器的解析器（peerdns 为 0 时），dnsmasq server 是转发列表，DHCP 选项 6 直接把服务器发给客户端、绕过 dnsmasq——取值不一致就会产生「部分客户端解析结果不同」的怪病。每个用途只留一个权威出处。',
+              [],null);
+          }
+        }
+        /* dropbear exposure */
+        for(const s of sectionsOf(model,'dropbear','dropbear')){
+          const g=k=>(s.options.find(o=>o.key===k)||{values:[]}).values[0];
+          const pw=g('PasswordAuth'), root=g('RootPasswordAuth'), ifc=g('Interface');
+          if((pw==null||isTrue(pw))&&(root==null||isTrue(root))&&!ifc){
+            push('warn','ssh-password','SSH allows root password login on all interfaces','SSH 允许 root 密码登录且不限接口',
+              'Dropbear has PasswordAuth and RootPasswordAuth on and no Interface binding, so password-guessing resistance rests entirely on the root password and the firewall wan policy. Install a key in /etc/dropbear/authorized_keys, then turn PasswordAuth off — or at least bind Interface to lan.',
+              'Dropbear 的 PasswordAuth 与 RootPasswordAuth 都开着、又没绑 Interface，防爆破完全靠 root 密码强度和防火墙 wan 策略二者。把密钥装进 /etc/dropbear/authorized_keys 后关掉 PasswordAuth——退一步至少把 Interface 绑到 lan。',
+              [pathOf(model,s,'PasswordAuth'),pathOf(model,s,'RootPasswordAuth')],
+              {label:'Turn RootPasswordAuth off 关闭 root 密码登录',apply:m=>{applySet(m,'dropbear',s,'RootPasswordAuth','off');}});
+          }
+        }
+        /* system: timezone mismatch, default hostname */
+        const TZMAP={'Asia/Shanghai':'CST-8','Asia/Chongqing':'CST-8','Asia/Taipei':'CST-8','Asia/Hong_Kong':'HKT-8','Asia/Tokyo':'JST-9','UTC':'UTC','Europe/London':'GMT0BST,M3.5.0/1,M10.5.0','America/New_York':'EST5EDT,M3.2.0/2,M11.1.0','America/Los_Angeles':'PST8PDT,M3.2.0,M11.1.0','Australia/Sydney':'AEST-10AEDT,M10.1.0,M4.1.0/3'};
+        for(const s of sectionsOf(model,'system','system')){
+          const g=k=>(s.options.find(o=>o.key===k)||{values:[]}).values[0];
+          const zn=g('zonename'), tz=g('timezone');
+          if(zn&&TZMAP[zn]&&tz&&tz!==TZMAP[zn]){
+            push('warn','tz-mismatch','Time zone name and POSIX string disagree','时区名与 POSIX 串不一致',
+              'zonename is "'+zn+'" but timezone is "'+tz+'" instead of "'+TZMAP[zn]+'". The running clock follows the POSIX string, so logs, cron and schedules are offset while LuCI shows the friendly name.',
+              'zonename 是「'+zn+'」，但 timezone 是「'+tz+'」而不是「'+TZMAP[zn]+'」。实际时钟走 POSIX 串，于是日志、cron 和定时任务偏移，LuCI 上却显示着友好的名字。',
+              [pathOf(model,s,'timezone'),pathOf(model,s,'zonename')],
+              {label:'Set timezone to '+TZMAP[zn],apply:m=>{applySet(m,'system',s,'timezone',TZMAP[zn]);}});
+          }
+          if(g('hostname')==='OpenWrt'){
+            push('info','hostname-default','Hostname is still the stock "OpenWrt"','主机名还是出厂的 OpenWrt',
+              'Not a fault — but with two routers on the same management network, identical hostnames make SSH prompts, DHCP lists and logs ambiguous.',
+              '不是故障——但管理网里有两台路由器时，相同的主机名会让 SSH 提示符、DHCP 列表和日志分不清谁是谁。',
+              [pathOf(model,s,'hostname')],null);
+          }
+        }
+        /* upnp */
+        for(const s of sectionsOf(model,'upnpd','upnpd')){
+          const g=k=>(s.options.find(o=>o.key===k)||{values:[]}).values[0];
+          const on=isTrue(g('enabled'))||isTrue(g('enable_upnp'));
+          if(on&&!isTrue(g('secure_mode'))){
+            push('warn','upnp-insecure','UPnP is on and secure mode is off','UPnP 已开且安全模式关闭',
+              'miniupnpd is enabled with secure_mode 0: any LAN program can ask the router to forward ports to any LAN address, not just its own. If you keep UPnP for consoles, turn secure mode on.',
+              'miniupnpd 已启用且 secure_mode 为 0：任何内网程序都能让路由器把端口转发到任意内网地址，而不只是它自己。为游戏机保留 UPnP 的话，请把安全模式打开。',
+              [pathOf(model,s,'secure_mode'),pathOf(model,s,'enabled')],
+              {label:'Enable secure_mode 开启安全模式',apply:m=>{applySet(m,'upnpd',s,'secure_mode','1');}});
+          }else if(on){
+            push('info','upnp-on','UPnP port mapping is enabled','UPnP 端口映射已启用',
+              'LAN applications can open inbound WAN ports by themselves. Check the UPnP lease list periodically, or enable log_output, so the openings are at least auditable.',
+              '内网应用可以自行打开 WAN 入站端口。定期看 UPnP 租约列表，或开启 log_output，至少让这些开口可审计。',
+              [pathOf(model,s,'enabled')],null);
+          }
+        }
+        /* legacy + DSA mix */
+        const hasDevice=sectionsOf(model,'network','device').length>0;
+        const hasIfname=sectionsOf(model,'network','interface').some(s=>s.options.some(o=>o.key==='ifname'));
+        if(hasDevice&&hasIfname){
+          push('info','legacy-mix','Legacy ifname used alongside DSA device sections','旧式 ifname 与 DSA device 段混用',
+            'The config mixes config device sections (DSA style) with legacy ifname options on interfaces. On DSA builds ifname is ignored in favour of device, so the stale entries are dead text that invites mis-edits.',
+            '这份配置同时有 config device 段（DSA 风格）和接口上的旧式 ifname。DSA 固件以 device 为准、忽略 ifname，这些残留是会误导编辑的死文本。',
+            [],null);
+        }
+        for(const w of model.warnings){
+          push('info','parse-warn','Duplicate value in the source file','源文件有重复值',w,w,[],null);
+        }
+        const order={crit:0,warn:1,info:2};
+        F.sort((a,b)=>order[a.sev]-order[b.sev]);
+        return F;
+      }
+      function findSection(model,pkgName,type,name){
+        const p=model.packages.find(x=>x.name===pkgName);
+        if(!p)return null;
+        return p.sections.find(s=>s.type===type&&(name==null||s.name===name))||null;
+      }
+      function applySet(m,pkgName,secSnapshot,key,value){
+        const pkg=m.packages.find(p=>p.name===pkgName);
+        if(!pkg)return;
+        let sec=pkg.sections.find(s=>s.uid===secSnapshot.uid);
+        if(!sec)sec=pkg.sections.find(s=>s.type===secSnapshot.type&&s.name===secSnapshot.name);
+        if(!sec)return;
+        let o=sec.options.find(x=>x.key===key);
+        if(!o){o={key:key,values:[],isList:false};sec.options.push(o);}
+        o.values=[value];o.isList=false;
+      }
+
+      /* ================= overview (structural logic summary) ================= */
+      function overviewRows(model){
+        const rows=[];
+        const gi=(pkg,type,name)=>findSection(model,pkg,type,name);
+        const gv=(sec,k)=>sec?((sec.options.find(o=>o.key===k)||{values:[]}).values):[];
+        const wan=['wan','wan6'].map(n=>gi('network','interface',n)).filter(Boolean);
+        if(wan.length){
+          rows.push({k:'Internet · WAN 上行',v:wan.map(s=>{
+            const proto=gv(s,'proto')[0]||'?';let d=esc(s.name)+': '+esc(proto);
+            if(proto==='pppoe')d+=' (user '+esc(gv(s,'username')[0]||'—')+', MTU '+esc(gv(s,'mtu')[0]||'default')+')';
+            if(proto==='dhcpv6')d+=' (reqaddress '+esc(gv(s,'reqaddress')[0]||'—')+', reqprefix '+esc(gv(s,'reqprefix')[0]||'auto')+')';
+            if(proto==='dhcp')d+=' (peerdns '+esc(gv(s,'peerdns')[0]||'1')+')';
+            return d;
+          }).join('<br>')});
+        }
+        const lan=gi('network','interface','lan');
+        if(lan){
+          const ip=gv(lan,'ipaddr')[0], nm=gv(lan,'netmask')[0];
+          let v='lan: '+esc(ip||'—')+' / '+esc(nm||'—');
+          const ipn=ipToNum(ip), mn=maskToNum(nm);
+          const pool=gi('dhcp','dhcp','lan');
+          if(ipn!=null&&mn!=null){
+            const net=ipn&mn;
+            v+='<br>subnet '+numToIp(net)+'/'+maskBits(mn);
+            if(pool){const st=Number(gv(pool,'start')[0]), li=Number(gv(pool,'limit')[0]);
+              if(Number.isFinite(st)&&Number.isFinite(li))v+=' · DHCP pool '+numToIp(net+st)+' – '+numToIp(net+st+li-1)+' ('+esc(gv(pool,'leasetime')[0]||'12h')+' leases)';}
+          }
+          rows.push({k:'LAN',v:v});
+        }
+        // DNS chain
+        const dm=sectionsOf(model,'dhcp','dnsmasq')[0];
+        let dnsV='';
+        if(dm){
+          const srv=gv(dm,'server'), nr=gv(dm,'noresolv')[0];
+          if(isTrue(nr||'0'))dnsV='upstream: ONLY the server list → '+(srv.length?esc(srv.join(', ')):'<b style="color:var(--crit)">(empty — resolution broken)</b>');
+          else dnsV='upstream: '+(srv.length?esc(srv.join(', '))+' + WAN-learned':'WAN-learned (resolv.conf.auto)');
+          const lanDhcp=gi('dhcp','dhcp','lan');
+          let client='clients → router (dnsmasq)';
+          if(lanDhcp)for(const o of lanDhcp.options)if(o.key==='dhcp_option')for(const val of o.values){const mm=val.match(/^6,(.+)$/);if(mm)client='clients → '+esc(mm[1])+' (DHCP option 6, bypasses dnsmasq)';}
+          dnsV+='<br>'+client;
+        }
+        if(dnsV)rows.push({k:'DNS chain · DNS 链',v:dnsV});
+        // IPv6
+        const v6parts=[];
+        const gl=sectionsOf(model,'network','globals')[0];
+        if(gl&&gv(gl,'ula_prefix')[0])v6parts.push('ULA '+esc(gv(gl,'ula_prefix')[0]));
+        for(const s of sectionsOf(model,'network','interface')){
+          const a=gv(s,'ip6assign')[0], p=gv(s,'ip6prefix')[0];
+          if(a)v6parts.push(esc(s.name||'?')+' ip6assign /'+esc(a));
+          if(p)v6parts.push(esc(s.name||'?')+' prefix '+esc(p));
+        }
+        if(v6parts.length)rows.push({k:'IPv6',v:v6parts.join(' · ')});
+        // firewall
+        const fparts=[];
+        for(const z of sectionsOf(model,'firewall','zone')){
+          fparts.push(esc(gv(z,'name')[0]||'?')+' in:'+esc(gv(z,'input')[0]||'—')+(isTrue(gv(z,'masq')[0])?' NAT':''));
+        }
+        const fwds=sectionsOf(model,'firewall','forwarding').map(f=>esc(gv(f,'src')[0]||'?')+'→'+esc(gv(f,'dest')[0]||'?'));
+        if(fparts.length)rows.push({k:'Firewall zones · 区域',v:fparts.join(' · ')+(fwds.length?'<br>forwarding: '+fwds.join(', '):'')});
+        // wireless
+        const wparts=[];
+        for(const s of sectionsOf(model,'wireless','wifi-iface')){
+          wparts.push('"'+esc(gv(s,'ssid')[0]||'?')+'" · '+esc(gv(s,'encryption')[0]||'none')+' · net '+esc(gv(s,'network')[0]||'lan'));
+        }
+        if(wparts.length)rows.push({k:'Wireless · 无线',v:wparts.join('<br>')});
+        return rows;
+      }
+
+      /* ================= rendering ================= */
+      const findingPaths=()=>{const s=new Set();for(const f of state.findings)for(const p of f.paths)s.add(p);return s;};
+      const sevOfPath=()=>{const m={};for(const f of state.findings)for(const p of f.paths){if(!m[p]||f.sev==='crit'||(f.sev==='warn'&&m[p]==='info'))m[p]=f.sev;}return m;};
+      function refresh(rebuildOnly){
+        if(!state.model)return;
+        state.findings=analyze(state.model);
+        state.diff=diffModels(state.original,state.model);
+        renderStats();renderBadges();
+        if(state.view==='params'){renderNav();renderParams();renderInspector();}
+        else if(state.view==='diag'){renderDiag();}
+        else{renderExport();}
+      }
+      function renderStats(){
+        const crit=state.findings.filter(f=>f.sev==='crit').length;
+        const warn=state.findings.filter(f=>f.sev==='warn').length;
+        const cards=[
+          {cls:'p',tag:'PKG',num:state.model.packages.length,lbl:'Packages 配置包'},
+          {cls:'i',tag:'SEC',num:countSections(state.model),lbl:'Sections 配置段'},
+          {cls:'o',tag:'OPT',num:countParams(state.model),lbl:'Parameters 参数'},
+          {cls:crit?'c':(warn?'w':'o'),tag:'!',num:state.findings.length,lbl:'Findings 诊断项 ('+crit+' critical · '+warn+' warnings)'},
+          {cls:'p',tag:'Δ',num:state.diff.length,lbl:'Changes 变更'}
+        ];
+        $('#statsRow').innerHTML=cards.map(c=>'<div class="stat"><div class="ic '+c.cls+'">'+c.tag+'</div><div><div class="num">'+c.num+'</div><div class="lbl">'+esc(c.lbl)+'</div></div></div>').join('');
+      }
+      function renderBadges(){
+        const serious=state.findings.filter(f=>f.sev!=='info').length;
+        const db=$('#diagBadge');
+        db.classList.toggle('hidden',serious===0);db.textContent=serious;
+        const cb=$('#chgBadge');
+        cb.classList.toggle('hidden',state.diff.length===0);cb.textContent=state.diff.length;
+        $('#btnResetAll').classList.toggle('hidden',state.diff.length===0);
+      }
+      function renderNav(){
+        const counts={};let total=0;
+        for(const pkg of state.model.packages)for(const sec of pkg.sections){const l=layerOf(pkg.name,sec);counts[l]=(counts[l]||0)+sec.options.length;total+=sec.options.length;}
+        let h='<h4>Layers 分层</h4>';
+        h+='<button class="navitem'+(state.layer==='all'&&state.pkgFilter==='all'?' active':'')+'" data-nav="all">All 全部<span class="cnt">'+total+'</span></button>';
+        for(const L of LAYERS){
+          if(!counts[L.id])continue;
+          h+='<button class="navitem'+(state.layer===L.id&&state.pkgFilter==='all'?' active':'')+'" data-nav="layer:'+L.id+'">'+esc(L.en)+' <span class="zh" style="color:inherit;opacity:.7">'+esc(L.zh)+'</span><span class="cnt">'+counts[L.id]+'</span></button>';
+        }
+        h+='<h4>Packages 配置包</h4>';
+        for(const pkg of state.model.packages){
+          let n=0;for(const s of pkg.sections)n+=s.options.length;
+          h+='<button class="navitem pkgchip'+(state.pkgFilter===pkg.name?' active':'')+'" data-nav="pkg:'+esc(pkg.name)+'">'+esc(pkg.name)+'<span class="cnt">'+n+'</span></button>';
+        }
+        $('#sideNav').innerHTML=h;
+      }
+      function entryVisible(e){
+        const pkg=e.pkg,sec=e.sec;
+        if(state.pkgFilter!=='all'&&pkg.name!==state.pkgFilter)return false;
+        if(state.layer!=='all'&&layerOf(pkg.name,sec)!==state.layer)return false;
+        if(state.filt==='changed'&&!state.diff.some(d=>d.path===e.path))return false;
+        if(state.filt==='issues'&&!findingPaths().has(e.path))return false;
+        const kb=kbFor(pkg.name,sec.type,e.opt.key);
+        if(state.filt==='known'&&!kb)return false;
+        if(state.filt==='unknown'&&kb)return false;
+        if(state.query){
+          const q=state.query.toLowerCase();
+          const hay=(e.path+' '+e.opt.key+' '+e.opt.values.join(' ')+' '+(kb?kb.label+' '+kb.labelZh+' '+kb.en+' '+kb.zh:'')).toLowerCase();
+          if(!hay.includes(q))return false;
+        }
+        return true;
+      }
+      function validateVal(kb,v){
+        if(!kb)return true;
+        v=String(v).trim();
+        switch(kb.t){
+          case 'ip4':return isIp4(v);
+          case 'ip6':return isIp6(v);
+          case 'ipcidr':return isIp4(v)||isCidr(v,32);
+          case 'cidr6':return isCidr(v,128);
+          case 'ip6cidr':return isCidr(v,128);
+          case 'mac':return isMac(v);
+          case 'number':return /^-?\d+$/.test(v);
+          default:return true;
+        }
+      }
+      function editorHTML(e){
+        const o=e.opt,kb=kbFor(e.pkg.name,e.sec.type,o.key);
+        const path=e.path;
+        if(kb&&kb.t==='bool'&&!o.isList&&o.values.length===1){
+          const on=isTrue(o.values[0]);
+          return '<button class="toggle'+(on?' on':'')+'" data-act="toggle" data-path="'+esc(path)+'" role="switch" aria-checked="'+on+'">'+(on?'On':'Off')+' <span class="mono" style="font-weight:400;opacity:.75">'+esc(o.values[0])+'</span><span class="pill"></span></button>';
+        }
+        if(kb&&kb.t==='enum'&&!o.isList){
+          const opts=kb.opts.slice();
+          if(o.values[0]&&!opts.includes(o.values[0]))opts.unshift(o.values[0]);
+          return '<select class="vsel" data-path="'+esc(path)+'">'+opts.map(v=>'<option value="'+esc(v)+'"'+(v===o.values[0]?' selected':'')+'>'+esc(v)+'</option>').join('')+'</select>';
+        }
+        if(o.isList||o.values.length>1){
+          let h='<div class="listedit">';
+          o.values.forEach((v,i)=>{h+='<span class="lchip">'+esc(v)+'<button data-act="ldel" data-path="'+esc(path)+'" data-idx="'+i+'" title="Remove 移除">×</button></span>';});
+          h+='<span class="ladd"><input placeholder="add value…" data-addpath="'+esc(path)+'"><button class="btn small" data-act="ladd" data-path="'+esc(path)+'">Add 添加</button></span></div>';
+          return h;
+        }
+        const bad=kb&&o.values[0]!==''&&!validateVal(kb,o.values[0]);
+        return '<input class="vin'+(bad?' invalid':'')+'" data-path="'+esc(path)+'" value="'+esc(o.values[0]||'')+'" spellcheck="false">';
+      }
+      function renderParams(){
+        const sevMap=sevOfPath();
+        const changedPaths=new Set(state.diff.map(d=>d.path));
+        let h='',any=false;
+        for(const pkg of state.model.packages){
+          for(const sec of pkg.sections){
+            const entries=sec.options.map(o=>({pkg:pkg,sec:sec,opt:o,path:pkg.name+'.'+secRef(pkg,sec)+'.'+o.key})).filter(entryVisible);
+            if(!entries.length)continue;
+            any=true;
+            const t=secTitle(pkg.name,sec);
+            const layer=LAYERS.find(l=>l.id===layerOf(pkg.name,sec));
+            const secChanged=entries.some(e=>changedPaths.has(e.path));
+            const secSev=entries.map(e=>sevMap[e.path]).find(s=>s==='crit')||entries.map(e=>sevMap[e.path]).find(s=>s==='warn');
+            h+='<div class="seccard'+(secChanged?' changed':'')+'">';
+            h+='<div class="sechead"><span class="title">'+esc(t.en)+(t.zh?' <span class="zh" style="font-size:13px">'+esc(t.zh)+'</span>':'')+'</span>';
+            h+='<span class="ref">'+esc(pkg.name+'.'+secRef(pkg,sec))+'</span>';
+            h+='<span class="chip">'+esc(sec.type)+'</span><span class="chip layer">'+esc(layer?layer.en:'')+'</span>';
+            if(secSev)h+='<span class="chip '+(secSev==='crit'?'iss':'warniss')+'">'+(secSev==='crit'?'has critical finding 有严重问题':'has warning 有警告')+'</span>';
+            h+='</div>';
+            for(const e of entries){
+              const kb=kbFor(pkg.name,sec.type,e.opt.key);
+              const changed=changedPaths.has(e.path);
+              const sev=sevMap[e.path];
+              h+='<div class="prow'+(changed?' ischanged':'')+(state.selectedPath===e.path?' selected':'')+'" data-rowpath="'+esc(e.path)+'">';
+              h+='<div class="pkey"><div class="k">'+(changed?'<span class="dot"></span>':'')+esc(e.opt.key)+(sev?'<span class="flag '+sev+'">'+(sev==='crit'?'CRITICAL':sev==='warn'?'WARNING':'NOTE')+'</span>':'')+'</div>';
+              h+='<div class="l">'+(kb?esc(kb.label)+' · '+esc(kb.labelZh):'<span style="color:var(--muted)">raw option 原样参数</span>')+'</div></div>';
+              h+='<div class="pval">'+editorHTML(e)+'</div>';
+              h+='<div style="display:flex;gap:6px"><button class="infobtn" data-act="info" data-path="'+esc(e.path)+'" title="Explanation 说明" aria-label="Explanation">i</button>';
+              h+='<button class="iconbtn del" data-act="del" data-path="'+esc(e.path)+'" title="Delete parameter 删除参数">✕</button></div>';
+              h+='</div>';
+            }
+            // add-parameter bar
+            const cand=[];
+            for(const k of Object.keys(KB)){
+              const parts=k.split('.');
+              if(parts[0]===pkg.name&&(parts[1]===sec.type||parts[1]==='*')){
+                const key=parts[2];
+                if(!sec.options.some(o=>o.key===key)&&!cand.includes(key))cand.push(key);
+              }
+            }
+            h+='<div class="addbar"><span style="font-size:12.5px;color:var(--muted)">Add parameter 添加参数:</span>';
+            if(cand.length)h+='<select data-addsel="'+sec.uid+'">'+cand.map(k=>'<option value="'+esc(k)+'">'+esc(k)+'</option>').join('')+'</select><button class="btn small" data-act="addknown" data-uid="'+sec.uid+'">Add 添加</button>';
+            h+='<input class="vin" style="width:150px" placeholder="custom key 自定义" data-customkey="'+sec.uid+'"><input class="vin" style="width:130px" placeholder="value 值" data-customval="'+sec.uid+'"><button class="btn small" data-act="addcustom" data-uid="'+sec.uid+'">Add 添加</button></div>';
+            h+='</div>';
+          }
+        }
+        if(!any)h='<div class="panel" style="padding:26px;text-align:center;color:var(--muted)">No parameters match the current filters. 当前筛选下没有参数。</div>';
+        $('#paramList').innerHTML=h;
+        if(state.scrollTo){
+          const row=$('#paramList').querySelector('[data-rowpath="'+CSS.escape(state.scrollTo)+'"]');
+          if(row)row.scrollIntoView({block:'center',behavior:'smooth'});
+          state.scrollTo=null;
+        }
+      }
+      /* ---- explanation content (shared by balloon + inspector) ---- */
+      function explainHTML(path,forInspector){
+        const fm=flatMap(state.model);
+        const e=fm.get(path)||flatMap(state.original).get(path);
+        if(!e)return '<p class="empty">Parameter not found. 找不到该参数。</p>';
+        const kb=kbFor(e.pkg.name,e.sec.type,e.opt.key);
+        let h='';
+        if(kb){
+          h+='<h3 style="margin:0">'+esc(kb.label)+' <span class="zh" style="font-size:14px">'+esc(kb.labelZh)+'</span></h3>';
+          h+='<div class="path mono" style="font-family:var(--mono);font-size:12px;color:var(--info);word-break:break-all">'+esc(path)+'</div>';
+          h+='<p class="bdesc" style="color:var(--ink2)">'+esc(kb.en)+'<span class="zh" style="display:block;color:var(--muted);margin-top:4px">'+esc(kb.zh)+'</span></p>';
+          h+='<div class="factrow">';
+          h+='<span class="fact">File 文件 <b>'+esc(e.pkg.name)+'</b></span>';
+          h+='<span class="fact">Section type 段类型 <b>'+esc(e.sec.type)+'</b></span>';
+          h+='<span class="fact">Type 类型 <b>'+esc(kb.t)+(e.opt.isList?' (list 列表)':'')+'</b></span>';
+          if(kb.def)h+='<span class="fact">Default 默认 <b>'+esc(kb.def)+'</b></span>';
+          if(kb.opts)h+='<span class="fact">Values 取值 <b>'+esc(kb.opts.join(' · '))+'</b></span>';
+          h+='</div>';
+          if(kb.rel&&kb.rel.length){
+            h+='<div class="bsec"><div class="bt">Related parameters · 相关参数（逻辑关联）</div>';
+            for(const rk of kb.rel){
+              const target=findPathByKey(rk,e.pkg.name);
+              if(target)h+='<button class="relchip" data-goto="'+esc(target)+'">'+esc(rk)+' →</button>';
+              else h+='<span class="relchip" style="cursor:default;opacity:.6">'+esc(rk)+' (not in this config 本配置无)</span>';
+            }
+            h+='</div>';
+          }
+          if(kb.wiki&&WIKI[kb.wiki]){
+            h+='<div class="bsec"><a class="wiki" href="'+esc(WIKI[kb.wiki])+'" target="_blank" rel="noopener">📖 '+esc(WIKILBL[kb.wiki])+' ↗</a></div>';
+          }
+        }else{
+          h+='<h3 style="margin:0" class="mono">'+esc(e.opt.key)+'</h3>';
+          h+='<div class="path mono" style="font-family:var(--mono);font-size:12px;color:var(--info);word-break:break-all">'+esc(path)+'</div>';
+          h+='<div class="unknown-note">This parameter is not covered by a verified entry in this tool\u2019s built-in reference (the reference covers the stock packages: network, dhcp, wireless, firewall, system, dropbear, uhttpd, luci, upnpd, sqm). Rather than guess at its meaning, it is shown with its exact structural facts and is preserved byte-for-byte on export unless you edit it. 本工具内置参考未收录该参数的经核实说明（参考覆盖官方标准包）。为避免臆测，这里只给出确切的结构信息；不编辑时，导出将原样保留。</div>';
+          h+='<div class="factrow"><span class="fact">File 文件 <b>'+esc(e.pkg.name)+'</b></span><span class="fact">Section type 段类型 <b>'+esc(e.sec.type)+'</b></span><span class="fact">Form 形式 <b>'+(e.opt.isList?'list 列表':'option 单值')+'</b></span></div>';
+        }
+        return h;
+      }
+      function findPathByKey(key,preferPkg){
+        const fm=flatMap(state.model);
+        let fallback=null;
+        for(const [path,e] of fm){
+          if(e.opt.key===key){if(e.pkg.name===preferPkg)return path;if(!fallback)fallback=path;}
+        }
+        return fallback;
+      }
+      function renderInspector(){
+        const box=$('#inspector');
+        const path=state.selectedPath;
+        if(!path){
+          box.innerHTML='<h3>Parameter details <span class="zh" style="font-size:13px">参数详情</span></h3><p class="empty">Select a parameter — or tap its <b>i</b> button — to see what it does, what it relates to, its verified default/range facts, and any findings that involve it. 点选任意参数（或点它的 i 按钮），这里会显示说明、逻辑关联、默认值/取值与相关诊断。</p>';
+          return;
+        }
+        const fm=flatMap(state.model), fo=flatMap(state.original);
+        const e=fm.get(path), eo=fo.get(path);
+        let h=explainHTML(path,true);
+        h+='<div style="margin-top:12px;border-top:1px solid var(--line);padding-top:10px">';
+        h+='<div class="kv"><span class="kk">Current value 当前值</span><span class="vv">'+(e?esc(e.opt.values.join(', ')||'(empty)'):'(deleted 已删除)')+'</span></div>';
+        h+='<div class="kv"><span class="kk">Original value 原始值</span><span class="vv">'+(eo?esc(eo.opt.values.join(', ')||'(empty)'):'(not in source 源文件无)')+'</span></div>';
+        h+='</div>';
+        const rel=state.findings.filter(f=>f.paths.includes(path));
+        for(const f of rel){
+          h+='<div class="mini-finding '+(f.sev==='crit'?'crit':'')+'"><b>'+(f.sev==='crit'?'⛔':f.sev==='warn'?'⚠':'ℹ')+' '+esc(f.titleEn)+' <span class="zh">'+esc(f.titleZh)+'</span></b>'+esc(f.en)+'<span class="zh" style="display:block">'+esc(f.zh)+'</span>';
+          if(f.fix)h+='<button class="btn small primary fixbtn" data-fixpath="'+esc(path)+'" data-fixid="'+esc(f.id)+'">✔ '+esc(f.fix.label)+'</button>';
+          h+='</div>';
+        }
+        const isChanged=state.diff.some(d=>d.path===path);
+        if(isChanged)h+='<button class="btn small" style="margin-top:12px" data-act="revert" data-path="'+esc(path)+'">↺ Revert this parameter 还原此参数</button>';
+        box.innerHTML=h;
+      }
+      /* ---- balloon ---- */
+      let balloonPinned=false,balloonHideTimer=null;
+      function showBalloon(path,anchor){
+        const b=$('#balloon');
+        b.innerHTML=explainHTML(path,false);
+        b.classList.add('show');b.setAttribute('aria-hidden','false');
+        const r=anchor.getBoundingClientRect();
+        const bw=Math.min(392,window.innerWidth-20);
+        let left=Math.max(10,Math.min(r.left,window.innerWidth-bw-10));
+        let top=r.bottom+8;
+        b.style.left=left+'px';b.style.top=top+'px';
+        const bh=b.offsetHeight;
+        if(top+bh>window.innerHeight-10){b.style.top=Math.max(10,r.top-bh-8)+'px';}
+      }
+      function hideBalloon(){if(balloonPinned)return;const b=$('#balloon');b.classList.remove('show');b.setAttribute('aria-hidden','true');}
+      function forceHideBalloon(){balloonPinned=false;hideBalloon();}
+
+      /* ================= diagnostics view ================= */
+      function renderDiag(){
+        const rows=overviewRows(state.model);
+        $('#overviewBox').innerHTML='<h3>Configuration overview <span class="zh" style="font-size:14px">配置逻辑概览</span></h3>'+(rows.length?'<div class="ovgrid">'+rows.map(r=>'<div class="ovrow"><b>'+esc(r.k)+'</b>'+r.v+'</div>').join('')+'</div>':'<p style="color:var(--muted)">Nothing to summarise yet. 暂无可概览的内容。</p>');
+        const box=$('#findingsList');
+        if(!state.findings.length){
+          box.innerHTML='<div class="okbox">✔ <b>No problems found.</b> The rule set (firewall exposure, DNS chain, DHCP pool math, IPv6 delegation accounting, wireless security, SSH posture, time zone consistency…) reports this configuration clean. 未发现问题：已检查防火墙暴露面、DNS 链、DHCP 地址池计算、IPv6 委派账目、无线安全、SSH 姿态、时区一致性等规则。</div>';
+          return;
+        }
+        box.innerHTML=state.findings.map((f,i)=>{
+          let h='<div class="finding '+f.sev+'"><h3><span class="sev '+f.sev+'">'+f.sev+'</span>'+esc(f.titleEn)+' <span class="zh" style="font-size:13.5px">'+esc(f.titleZh)+'</span></h3>';
+          h+='<p>'+esc(f.en)+'<span class="zh">'+esc(f.zh)+'</span></p>';
+          if(f.paths.length)h+='<div>'+f.paths.map(p=>'<button class="keylink" data-goto="'+esc(p)+'">'+esc(p)+'</button>').join('')+'</div>';
+          if(f.fix)h+='<button class="btn small primary" style="margin-top:9px" data-fixidx="'+i+'">✔ '+esc(f.fix.label)+'</button>';
+          return h+'</div>';
+        }).join('');
+      }
+      /* ================= export view ================= */
+      function currentExportText(){
+        const m=state.model;
+        switch(state.expFmt){
+          case 'batch-diff':return buildBatchScript(m,state.original);
+          case 'batch-full':return buildBatchScript(m,null);
+          case 'export':return toExportText(m);
+          case 'config':{const p=m.packages.find(x=>x.name===state.expPkg)||m.packages[0];return p?toConfigText(p):'';}
+          case 'report':return buildReport();
+        }
+        return '';
+      }
+      function buildReport(){
+        const L=[];
+        L.push('# OpenWrt configuration diagnostics 配置诊断报告');
+        L.push('');
+        L.push('- Source 来源: '+state.sourceLabel);
+        L.push('- Generated 生成时间: '+new Date().toLocaleString());
+        L.push('- Packages '+state.model.packages.length+' · Sections '+countSections(state.model)+' · Parameters '+countParams(state.model));
+        L.push('');
+        L.push('## Overview 逻辑概览');
+        for(const r of overviewRows(state.model))L.push('- **'+r.k+'**: '+r.v.replace(/<br>/g,'; ').replace(/<[^>]+>/g,''));
+        L.push('');
+        L.push('## Findings 诊断项 ('+state.findings.length+')');
+        if(!state.findings.length)L.push('- None. 未发现问题。');
+        for(const f of state.findings){
+          L.push('- ['+f.sev.toUpperCase()+'] '+f.titleEn+' / '+f.titleZh);
+          L.push('  '+f.en);
+          L.push('  '+f.zh);
+          if(f.paths.length)L.push('  Parameters: '+f.paths.join(', '));
+        }
+        L.push('');
+        L.push('## Changes 变更 ('+state.diff.length+')');
+        if(!state.diff.length)L.push('- None. 无变更。');
+        for(const d of state.diff)L.push('- '+d.kind+' '+d.path+': '+(d.old?d.old.join(', '):'∅')+' → '+(d.new?d.new.join(', '):'∅'));
+        L.push('');
+        return L.join('\n');
+      }
+      function renderExport(){
+        const sel=$('#expPkgSel');
+        sel.innerHTML=state.model.packages.map(p=>'<option value="'+esc(p.name)+'"'+(p.name===state.expPkg?' selected':'')+'>/etc/config/'+esc(p.name)+'</option>').join('');
+        sel.classList.toggle('hidden',state.expFmt!=='config');
+        $$('#expSeg button').forEach(b=>b.classList.toggle('active',b.dataset.fmt===state.expFmt));
+        const db=$('#diffBox');
+        if(!state.diff.length){
+          db.innerHTML='<p style="color:var(--muted);margin:8px 0 4px">No changes yet — edit any parameter and it will show up here with its old and new values. 还没有任何变更——修改任意参数后，这里会出现新旧值对照。</p>';
+        }else{
+          db.innerHTML='<table class="difftable"><thead><tr><th>Parameter 参数</th><th>Kind</th><th>Before 原值</th><th>After 新值</th><th></th></tr></thead><tbody>'+
+            state.diff.map(d=>'<tr><td class="mono">'+esc(d.path)+'</td><td>'+esc(d.kind)+'</td><td class="oldv">'+(d.old?esc(d.old.join(', ')):'∅')+'</td><td class="newv">'+(d.new?esc(d.new.join(', ')):'∅')+'</td><td><button class="btn small" data-act="revert" data-path="'+esc(d.path)+'">Revert 还原</button></td></tr>').join('')+
+            '</tbody></table>';
+        }
+        $('#expPreview').textContent=currentExportText();
+      }
+      /* ================= mutations ================= */
+      function findEntry(model,path){return flatMap(model).get(path)||null;}
+      function setScalar(path,value){
+        const e=findEntry(state.model,path);if(!e)return;
+        e.opt.values=[value];e.opt.isList=false;refresh();
+      }
+      function revertPath(path){
+        const cur=findEntry(state.model,path), orig=findEntry(state.original,path);
+        if(orig){
+          if(cur){cur.opt.values=orig.opt.values.slice();cur.opt.isList=orig.opt.isList;}
+          else{
+            // re-insert into its section in original order position (append is fine)
+            const fm=flatMap(state.model);
+            for(const pkg of state.model.packages)for(const sec of pkg.sections){
+              if(pkg.name===orig.pkg.name&&secRef(pkg,sec)===secRef(orig.pkg,orig.sec)){
+                sec.options.push({key:orig.opt.key,values:orig.opt.values.slice(),isList:orig.opt.isList});
+              }
+            }
+          }
+        }else if(cur){
+          const arr=cur.sec.options;const i=arr.indexOf(cur.opt);if(i>=0)arr.splice(i,1);
+        }
+        refresh();
+      }
+      function applyFix(f){
+        if(!f||!f.fix)return;
+        f.fix.apply(state.model);
+        toast('Fix applied 应用完成: '+f.titleEn);
+        refresh();
+      }
+      /* ================= loading ================= */
+      async function loadFromFiles(files){
+        const model=newModel();const labels=[];
+        for(const f of files){
+          const name=f.name||'pasted';
+          try{
+            if(/\.tar\.gz$|\.tgz$/i.test(name)){await parseTarGz(model,await f.arrayBuffer());}
+            else{const text=await f.text();detectAndParse(model,text,pkgNameFromFile(name));}
+            labels.push(name);
+          }catch(err){toast('Failed to read '+name+': '+err.message);return;}
+        }
+        if(!model.packages.length||countSections(model)===0){toast('No UCI configuration found in that input 输入里没找到 UCI 配置');return;}
+        state.original=cloneModel(model);
+        state.model=cloneModel(model);
+        state.sourceLabel=labels.join(', ');
+        afterLoad();
+      }
+      function loadFromText(text,label){
+        const model=newModel();
+        detectAndParse(model,text,null);
+        if(!model.packages.length||countSections(model)===0){toast('No UCI configuration found in that text 文本里没找到 UCI 配置');return;}
+        state.original=cloneModel(model);
+        state.model=cloneModel(model);
+        state.sourceLabel=label;
+        afterLoad();
+      }
+      function afterLoad(){
+        state.layer='all';state.pkgFilter='all';state.query='';state.filt='all';state.selectedPath=null;state.view='params';state.expPkg=state.model.packages[0]?state.model.packages[0].name:null;
+        $('#searchInput').value='';$('#filterSel').value='all';
+        $('#emptyState').classList.add('hidden');
+        $('#workspace').classList.remove('hidden');
+        $('#btnClear').classList.remove('hidden');
+        $('#srcName').textContent=state.sourceLabel;
+        $$('.vtab').forEach(t=>t.classList.toggle('active',t.dataset.view==='params'));
+        $('#viewParams').classList.remove('hidden');$('#viewDiag').classList.add('hidden');$('#viewExport').classList.add('hidden');
+        refresh();
+        toast('Loaded 已加载: '+countParams(state.model)+' parameters · '+state.findings.length+' findings');
+      }
+      /* ================= events ================= */
+      const fileInput=$('#fileInput');
+      const openPicker=()=>fileInput.click();
+      $('#btnOpen').addEventListener('click',openPicker);
+      $('#btnOpen2').addEventListener('click',openPicker);
+      fileInput.addEventListener('change',()=>{if(fileInput.files.length)loadFromFiles(Array.from(fileInput.files));fileInput.value='';});
+      $('#btnSample').addEventListener('click',()=>loadFromText(SAMPLE,'sample config 示例配置 (built-in, planted issues)'));
+      $('#btnSampleTop').addEventListener('click',()=>loadFromText(SAMPLE,'sample config 示例配置 (built-in, planted issues)'));
+      $('#btnPaste').addEventListener('click',()=>{$('#pastebox').style.display='block';$('#pasteText').focus();});
+      $('#btnPasteCancel').addEventListener('click',()=>{$('#pastebox').style.display='none';});
+      $('#btnPasteGo').addEventListener('click',()=>{const t=$('#pasteText').value;if(t.trim()){loadFromText(t,'pasted text 粘贴的文本');}});
+      const dz=$('#dropzone');
+      ['dragenter','dragover'].forEach(ev=>document.addEventListener(ev,e=>{e.preventDefault();dz.classList.add('drag');}));
+      ['dragleave','drop'].forEach(ev=>document.addEventListener(ev,e=>{e.preventDefault();if(ev==='dragleave'&&e.relatedTarget)return;dz.classList.remove('drag');}));
+      document.addEventListener('drop',e=>{const fs=e.dataTransfer&&e.dataTransfer.files;if(fs&&fs.length)loadFromFiles(Array.from(fs));});
+      $('#btnClear').addEventListener('click',()=>{
+        state.model=null;state.original=null;state.selectedPath=null;
+        $('#workspace').classList.add('hidden');$('#emptyState').classList.remove('hidden');
+        $('#btnClear').classList.add('hidden');$('#btnResetAll').classList.add('hidden');$('#srcName').textContent='';
+        forceHideBalloon();
+      });
+      $('#btnResetAll').addEventListener('click',()=>{state.model=cloneModel(state.original);state.selectedPath=null;refresh();toast('All edits reverted 已撤销全部修改');});
+      $$('.vtab').forEach(t=>t.addEventListener('click',()=>{
+        state.view=t.dataset.view;
+        $$('.vtab').forEach(x=>x.classList.toggle('active',x===t));
+        $('#viewParams').classList.toggle('hidden',state.view!=='params');
+        $('#viewDiag').classList.toggle('hidden',state.view!=='diag');
+        $('#viewExport').classList.toggle('hidden',state.view!=='export');
+        forceHideBalloon();
+        refresh();
+      }));
+      $('#searchInput').addEventListener('input',e=>{state.query=e.target.value.trim();renderParams();});
+      $('#filterSel').addEventListener('change',e=>{state.filt=e.target.value;renderParams();});
+      $('#sideNav').addEventListener('click',e=>{
+        const b=e.target.closest('[data-nav]');if(!b)return;
+        const v=b.dataset.nav;
+        if(v==='all'){state.layer='all';state.pkgFilter='all';}
+        else if(v.startsWith('layer:')){state.layer=v.slice(6);state.pkgFilter='all';}
+        else if(v.startsWith('pkg:')){state.pkgFilter=v.slice(4);state.layer='all';}
+        renderNav();renderParams();
+      });
+      /* param list interactions (delegated) */
+      const pl=$('#paramList');
+      pl.addEventListener('click',e=>{
+        const infoBtn=e.target.closest('[data-act="info"]');
+        if(infoBtn){
+          const p=infoBtn.dataset.path;
+          state.selectedPath=p;renderParamsSelection();renderInspector();
+          if(balloonPinned&&$('#balloon').classList.contains('show')){forceHideBalloon();}
+          balloonPinned=true;showBalloon(p,infoBtn);
+          return;
+        }
+        const btn=e.target.closest('[data-act]');
+        if(btn){
+          const act=btn.dataset.act,path=btn.dataset.path;
+          if(act==='toggle'){const en=findEntry(state.model,path);if(en)setScalar(path,isTrue(en.opt.values[0])?'0':'1');}
+          else if(act==='del'){const en=findEntry(state.model,path);if(en){const arr=en.sec.options;arr.splice(arr.indexOf(en.opt),1);if(state.selectedPath===path)state.selectedPath=null;refresh();toast('Parameter deleted (revert from Changes tab) 已删除，可在变更页还原');}}
+          else if(act==='ldel'){const en=findEntry(state.model,path);if(en){en.opt.values.splice(Number(btn.dataset.idx),1);refresh();}}
+          else if(act==='ladd'){const inp=pl.querySelector('[data-addpath="'+CSS.escape(path)+'"]');const en=findEntry(state.model,path);if(en&&inp&&inp.value.trim()){en.opt.values.push(inp.value.trim());en.opt.isList=true;refresh();}}
+          else if(act==='revert'){revertPath(path);}
+          else if(act==='addknown'||act==='addcustom'){
+            const uid=Number(btn.dataset.uid);
+            for(const pkg of state.model.packages)for(const sec of pkg.sections){
+              if(sec.uid!==uid)continue;
+              let key='',val='';
+              if(act==='addknown'){const sel=pl.querySelector('[data-addsel="'+uid+'"]');key=sel?sel.value:'';val=defaultForKey(pkg.name,sec.type,key);}
+              else{const ki=pl.querySelector('[data-customkey="'+uid+'"]'),vi=pl.querySelector('[data-customval="'+uid+'"]');key=ki?ki.value.trim():'';val=vi?vi.value:'';}
+              if(!key){toast('Enter a key first 先填参数名');return;}
+              if(sec.options.some(o=>o.key===key)){toast('That parameter already exists in this section 该参数在本段已存在');return;}
+              sec.options.push({key:key,values:[val],isList:false});
+              state.selectedPath=pkg.name+'.'+secRef(pkg,sec)+'.'+key;
+              refresh();toast('Parameter added 已添加: '+key);
+            }
+          }
+          return;
+        }
+        const row=e.target.closest('[data-rowpath]');
+        if(row&&!e.target.closest('input,select,button')){state.selectedPath=row.dataset.rowpath;renderParamsSelection();renderInspector();}
+      });
+      pl.addEventListener('change',e=>{
+        const t=e.target;
+        if(t.dataset&&t.dataset.path&&(t.classList.contains('vin')||t.classList.contains('vsel'))){
+          setScalar(t.dataset.path,t.value);
+        }
+      });
+      pl.addEventListener('mouseover',e=>{
+        const b=e.target.closest('[data-act="info"]');
+        if(b&&!balloonPinned){clearTimeout(balloonHideTimer);showBalloon(b.dataset.path,b);}
+      });
+      pl.addEventListener('mouseout',e=>{
+        const b=e.target.closest('[data-act="info"]');
+        if(b&&!balloonPinned){balloonHideTimer=setTimeout(hideBalloon,250);}
+      });
+      $('#balloon').addEventListener('mouseenter',()=>clearTimeout(balloonHideTimer));
+      $('#balloon').addEventListener('mouseleave',()=>{if(!balloonPinned)hideBalloon();});
+      document.addEventListener('click',e=>{
+        if(balloonPinned&&!e.target.closest('#balloon')&&!e.target.closest('[data-act="info"]'))forceHideBalloon();
+        const g=e.target.closest('[data-goto]');
+        if(g){gotoPath(g.dataset.goto);}
+      });
+      document.addEventListener('keydown',e=>{if(e.key==='Escape')forceHideBalloon();});
+      window.addEventListener('resize',()=>forceHideBalloon());
+      function renderParamsSelection(){
+        $$('#paramList .prow').forEach(r=>r.classList.toggle('selected',r.dataset.rowpath===state.selectedPath));
+      }
+      function gotoPath(path){
+        forceHideBalloon();
+        state.view='params';
+        $$('.vtab').forEach(x=>x.classList.toggle('active',x.dataset.view==='params'));
+        $('#viewParams').classList.remove('hidden');$('#viewDiag').classList.add('hidden');$('#viewExport').classList.add('hidden');
+        state.layer='all';state.pkgFilter='all';state.filt='all';state.query='';$('#searchInput').value='';$('#filterSel').value='all';
+        state.selectedPath=path;state.scrollTo=path;
+        refresh();
+      }
+      function defaultForKey(pkg,type,key){
+        const kb=kbFor(pkg,type,key);
+        if(!kb)return '';
+        if(kb.t==='bool')return '0';
+        if(kb.t==='enum'&&kb.opts&&kb.opts.length)return kb.opts[0];
+        if(kb.def&&!/\(/.test(kb.def))return kb.def;
+        return '';
+      }
+      /* inspector + diag fix/goto delegation */
+      document.addEventListener('click',e=>{
+        const fb=e.target.closest('[data-fixidx]');
+        if(fb){applyFix(state.findings[Number(fb.dataset.fixidx)]);return;}
+        const fp=e.target.closest('[data-fixpath]');
+        if(fp){const f=state.findings.find(x=>x.id===fp.dataset.fixid);applyFix(f);return;}
+        const rv=e.target.closest('#viewExport [data-act="revert"], #inspector [data-act="revert"]');
+        if(rv){revertPath(rv.dataset.path);return;}
+      });
+      /* export controls */
+      $('#expSeg').addEventListener('click',e=>{
+        const b=e.target.closest('[data-fmt]');if(!b)return;
+        state.expFmt=b.dataset.fmt;renderExport();
+      });
+      $('#expPkgSel').addEventListener('change',e=>{state.expPkg=e.target.value;renderExport();});
+      $('#btnCopy').addEventListener('click',()=>copyText(currentExportText()));
+      $('#btnDownload').addEventListener('click',()=>{
+        const names={'batch-diff':'openwrt-changes.sh','batch-full':'openwrt-full.sh','export':'router-export.conf','config':'config-'+(state.expPkg||'pkg'),'report':'openwrt-diagnostics.md'};
+        download(names[state.expFmt]||'openwrt-config.txt',currentExportText());
+        toast('Downloaded 已下载: '+names[state.expFmt]);
+      });
+    </script>
+</body>
+</html>
